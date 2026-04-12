@@ -1,4 +1,4 @@
-import devConfig  from './config.dev';
+import devConfig from './config.dev';
 import prodConfig from './config.prod';
 import { AppConfig } from './types';
 
@@ -8,8 +8,8 @@ export const config: AppConfig = isDev ? devConfig : prodConfig;
 
 /** Typed logger — only outputs when debug.enabled is true */
 export const log = {
-  info:  (...args: unknown[]) => { if (config.debug.enabled) console.log('[ATC]', ...args); },
-  warn:  (...args: unknown[]) => { if (config.debug.enabled) console.warn('[ATC]', ...args); },
+  info: (...args: unknown[]) => { if (config.debug.enabled) console.warn('[ATC]', ...args); },
+  warn: (...args: unknown[]) => { if (config.debug.enabled) console.warn('[ATC]', ...args); },
   error: (...args: unknown[]) => { console.error('[ATC]', ...args); },
 };
 

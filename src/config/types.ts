@@ -1,69 +1,69 @@
 export interface AppConfig {
 
   app: {
-    name:        string;
-    version:     string;
+    name: string;
+    version: string;
     description: string;
-    aircraft:    string;
+    aircraft: string;
   };
 
   copyright: {
-    year:       number;
+    year: string;
     disclaimer: string;
   };
 
   donations: {
     enabled: boolean;
     upi: {
-      id:          string;
+      id: string;
       displayName: string;
-      note:        string;
+      note: string;
     };
   };
 
   metar: {
-    primary:   'checkwx' | 'aviationweather';
+    primary: 'checkwx' | 'aviationweather';
     corsProxy: string;
     aviationWeather: {
       baseUrl: string;
     };
     checkwx: {
-      key:     string;
+      key: string;
       baseUrl: string;
     };
   };
 
   contactus: {
     emailjs: {
-      serviceId:  string;
+      serviceId: string;
       templateId: string;
-      publicKey:  string;
+      publicKey: string;
     };
     social: {
-      linkedin:      string;
-      github:        string;
+      linkedin: string;
+      github: string;
       stackoverflow: string;
-      twitter:       string;
-      githubIssues:  string;
+      twitter: string;
+      githubIssues: string;
     };
   };
 
   tracking: {
-    enabled:   boolean;
+    enabled: boolean;
     logEvents: boolean;
     supabase: {
-      url:          string;
-      anonKey:      string;
-      usersTable:   string;
-      eventsTable:  string;
+      url: string;
+      anonKey: string;
+      usersTable: string;
+      eventsTable: string;
     };
   };
 
   developer: {
-    name:         string;
-    hamCallsign:  string;
+    name: string;
+    hamCallsign: string;
     pilotLicense: string;
-    location:     string;
+    location: string;
   };
 
   debug: {

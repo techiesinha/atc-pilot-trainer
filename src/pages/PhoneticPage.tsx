@@ -1,9 +1,9 @@
 /**
- * © 2025 Abhishek Sinha. All rights reserved.
+ * © 2025-2026 Abhishek Sinha. All rights reserved.
  * ATC Pilot Trainer — For training purposes only.
  * Unauthorised copying or reproduction without prior written permission is prohibited.
  */
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { PHONETIC_ALPHABET, AVIATION_NUMBERS } from '../data/phonetics';
 import styles from './PhoneticPage.module.css';
 
@@ -21,13 +21,13 @@ function buildQuiz(mode: DrillMode): QuizItem[] {
 }
 
 export function PhoneticPage() {
-  const [mode, setMode]           = useState<DrillMode>('learn');
-  const [items, setItems]         = useState<QuizItem[]>([]);
-  const [idx, setIdx]             = useState(0);
-  const [input, setInput]         = useState('');
-  const [checked, setChecked]     = useState<'asking'|'correct'|'wrong'>('asking');
-  const [score, setScore]         = useState({ correct: 0, total: 0 });
-  const inputRef                  = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<DrillMode>('learn');
+  const [items, setItems] = useState<QuizItem[]>([]);
+  const [idx, setIdx] = useState(0);
+  const [input, setInput] = useState('');
+  const [checked, setChecked] = useState<'asking' | 'correct' | 'wrong'>('asking');
+  const [score, setScore] = useState({ correct: 0, total: 0 });
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const startDrill = useCallback((m: DrillMode) => {
     if (m === 'learn') { setMode('learn'); return; }
@@ -67,8 +67,8 @@ export function PhoneticPage() {
       <div className={styles.modeRow}>
         {([
           { id: 'learn', label: 'Study Table' },
-          { id: 'l2p',   label: 'Letter → Phonetic' },
-          { id: 'p2l',   label: 'Phonetic → Letter' },
+          { id: 'l2p', label: 'Letter → Phonetic' },
+          { id: 'p2l', label: 'Phonetic → Letter' },
           { id: 'numbers', label: 'Aviation Numbers' },
         ] as { id: DrillMode; label: string }[]).map((m) => (
           <button key={m.id} className={`${styles.modeBtn} ${mode === m.id ? styles.modeActive : ''}`} onClick={() => startDrill(m.id)}>

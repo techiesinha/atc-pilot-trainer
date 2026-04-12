@@ -1,5 +1,5 @@
-import { ScenarioTemplate } from '../types';
 import { Aerodrome } from '../config/aerodromes';
+import { ScenarioTemplate } from '../types';
 import { callsignToPhonetic } from './callsigns';
 
 export const SCENARIO_TEMPLATES: ScenarioTemplate[] = [

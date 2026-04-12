@@ -1,27 +1,27 @@
 /**
- * © 2025 Abhishek Sinha. All rights reserved.
+ * © 2025 - 2026 Abhishek Sinha. All rights reserved.
  * ATC Pilot Trainer — For training purposes only.
  * Unauthorised copying or reproduction without prior written permission is prohibited.
  */
 import React, { useState, useCallback } from 'react';
-import { fetchMetar } from '../services/aviationWeather';
-import { MetarData } from '../types';
 import { searchAirports, INDIAN_AIRPORTS } from '../data/indianAirports';
-import { saveToMetarCache, searchCachedAirports } from '../services/metarCache';
 import { t } from '../locales';
+import { fetchMetar } from '../services/aviationWeather';
+import { saveToMetarCache, searchCachedAirports } from '../services/metarCache';
+import { MetarData } from '../types';
 import styles from './MetarPage.module.css';
 
 const CAT_COLORS: Record<string, string> = {
-  VFR:'#39ff14', MVFR:'#58a6ff', IFR:'#f0a030', LIFR:'#f85149', UNKNOWN:'#888780',
+  VFR: '#39ff14', MVFR: '#58a6ff', IFR: '#f0a030', LIFR: '#f85149', UNKNOWN: '#888780',
 };
 
 const QUICK_AIRPORTS = [
-  { icao:'VAPO', label:'Pune'      },
-  { icao:'VABB', label:'Mumbai'    },
-  { icao:'VIDP', label:'Delhi'     },
-  { icao:'VOBG', label:'Bangalore' },
-  { icao:'VOMM', label:'Chennai'   },
-  { icao:'VOHY', label:'Hyderabad' },
+  { icao: 'VAPO', label: 'Pune' },
+  { icao: 'VABB', label: 'Mumbai' },
+  { icao: 'VIDP', label: 'Delhi' },
+  { icao: 'VOBG', label: 'Bangalore' },
+  { icao: 'VOMM', label: 'Chennai' },
+  { icao: 'VOHY', label: 'Hyderabad' },
 ];
 
 /** Friendly error message for raw API / JSON errors */
@@ -45,11 +45,11 @@ function humaniseError(raw: unknown): string {
 const KNOWN_ICAOS = new Set(INDIAN_AIRPORTS.map((a) => a.icao));
 
 export function MetarPage() {
-  const [query, setQuery]             = useState('');
+  const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Array<{ icao: string; name: string }>>([]);
-  const [metar, setMetar]             = useState<MetarData | null>(null);
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState<string | null>(null);
+  const [metar, setMetar] = useState<MetarData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const doFetch = useCallback(async (icao: string, displayName?: string) => {
     setLoading(true); setError(null); setMetar(null); setSuggestions([]);
@@ -71,8 +71,8 @@ export function MetarPage() {
   const handleQuery = (val: string) => {
     setQuery(val);
     if (val.length >= 2) {
-      const staticResults  = searchAirports(val).map((a) => ({ icao: a.icao, name: a.city }));
-      const cachedResults  = searchCachedAirports(val).map((a) => ({ icao: a.icao, name: a.name }));
+      const staticResults = searchAirports(val).map((a) => ({ icao: a.icao, name: a.city }));
+      const cachedResults = searchCachedAirports(val).map((a) => ({ icao: a.icao, name: a.name }));
       // Merge, deduplicate by ICAO, static list first
       const seen = new Set(staticResults.map((r) => r.icao));
       const merged = [...staticResults, ...cachedResults.filter((r) => !seen.has(r.icao))];

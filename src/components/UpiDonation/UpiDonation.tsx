@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import React, { useState } from 'react';
 import { config } from '../../config';
 import { t } from '../../locales';
 import styles from './UpiDonation.module.css';

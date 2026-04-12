@@ -1,18 +1,18 @@
 /**
- * © 2025 Abhishek Sinha. All rights reserved.
+ * © 2025-2026 Abhishek Sinha. All rights reserved.
  * ATC Pilot Trainer — For training purposes only.
  * Unauthorised copying or reproduction without prior written permission is prohibited.
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { SCENARIO_TEMPLATES, CATEGORIES, resolveScenario } from '../data/scenarios';
-import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-import { evaluateReadback } from '../services/scoring';
-import { logEvent } from '../services/userService';
 import { TowerSelector } from '../components/TowerSelector/TowerSelector';
 import { Aerodrome, DEFAULT_AERODROME } from '../config/aerodromes';
-import { Scenario, TranscriptEntry, FeedbackResult, SessionRecord, ScenarioCategory } from '../types';
+import { SCENARIO_TEMPLATES, CATEGORIES, resolveScenario } from '../data/scenarios';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { t } from '../locales';
+import { evaluateReadback } from '../services/scoring';
+import { logEvent } from '../services/userService';
+import { Scenario, TranscriptEntry, FeedbackResult, SessionRecord, ScenarioCategory } from '../types';
 import styles from './SimulatorPage.module.css';
 
 type SimState = 'idle' | 'atc_speaking' | 'standby' | 'transmitting' | 'evaluating' | 'feedback';
@@ -25,24 +25,24 @@ interface Props {
 }
 
 export function SimulatorPage({ callsign, userId, speak, cancel }: Props) {
-  const [aerodrome, setAerodrome]     = useState<Aerodrome>(DEFAULT_AERODROME);
+  const [aerodrome, setAerodrome] = useState<Aerodrome>(DEFAULT_AERODROME);
   const [activeCategory, setCategory] = useState<ScenarioCategory>('ground');
-  const [currentScenario, setScenario]= useState<Scenario | null>(null);
-  const [simState, setSimState]       = useState<SimState>('idle');
-  const [transcript, setTranscript]   = useState<TranscriptEntry[]>([]);
-  const [liveText, setLiveText]       = useState('');
-  const [feedback, setFeedback]       = useState<FeedbackResult | null>(null);
-  const [waveActive, setWaveActive]   = useState(false);
-  const [sessions, setSessions]       = useLocalStorage<SessionRecord[]>('atcSessions', []);
+  const [currentScenario, setScenario] = useState<Scenario | null>(null);
+  const [simState, setSimState] = useState<SimState>('idle');
+  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+  const [liveText, setLiveText] = useState('');
+  const [feedback, setFeedback] = useState<FeedbackResult | null>(null);
+  const [waveActive, setWaveActive] = useState(false);
+  const [, setSessions] = useLocalStorage<SessionRecord[]>('atcSessions', []);
 
-  const txRef      = useRef<HTMLDivElement>(null);
-  const liveRef    = useRef('');
-  const fbRef      = useRef<HTMLDivElement>(null);
+  const txRef = useRef<HTMLDivElement>(null);
+  const liveRef = useRef('');
+  const fbRef = useRef<HTMLDivElement>(null);
 
   const { isSupported, start: startSTT, stop: stopSTT } = useSpeechRecognition();
 
   const availableCategories = CATEGORIES.filter((c) => {
-    if (!aerodrome.controlled) return ['uncontrolled','emergency','information'].includes(c.id);
+    if (!aerodrome.controlled) return ['uncontrolled', 'emergency', 'information'].includes(c.id);
     return c.id !== 'uncontrolled';
   });
 
@@ -51,7 +51,7 @@ export function SimulatorPage({ callsign, userId, speak, cancel }: Props) {
     .map((tmpl) => resolveScenario(tmpl, callsign, aerodrome));
 
   useEffect(() => {
-    if (!aerodrome.controlled && !['uncontrolled','emergency','information'].includes(activeCategory)) {
+    if (!aerodrome.controlled && !['uncontrolled', 'emergency', 'information'].includes(activeCategory)) {
       setCategory('uncontrolled');
     } else if (aerodrome.controlled && activeCategory === 'uncontrolled') {
       setCategory('ground');
@@ -129,24 +129,24 @@ export function SimulatorPage({ callsign, userId, speak, cancel }: Props) {
           passed: result.status === 'pass',
           score: result.score,
           aerodrome: aerodrome.icao,
-        }).catch(() => {});
+        }).catch(() => { });
       }
     }, 350);
   }, [simState, stopSTT, addEntry, currentScenario, aerodrome, userId, setSessions]);
 
   const stateLabel: Record<SimState, string> = {
-    idle:        t.simulator.state.idle,
-    atc_speaking:t.simulator.state.atcSpeaking,
-    standby:     t.simulator.state.standby,
-    transmitting:t.simulator.state.transmitting,
-    evaluating:  t.simulator.state.evaluating,
-    feedback:    t.simulator.state.feedback,
+    idle: t.simulator.state.idle,
+    atc_speaking: t.simulator.state.atcSpeaking,
+    standby: t.simulator.state.standby,
+    transmitting: t.simulator.state.transmitting,
+    evaluating: t.simulator.state.evaluating,
+    feedback: t.simulator.state.feedback,
   };
 
   const stateColor: Record<SimState, string> = {
-    idle:'var(--green-dim)', atc_speaking:'var(--blue)',
-    standby:'var(--green-bright)', transmitting:'var(--green-bright)',
-    evaluating:'var(--amber)',
+    idle: 'var(--green-dim)', atc_speaking: 'var(--blue)',
+    standby: 'var(--green-bright)', transmitting: 'var(--green-bright)',
+    evaluating: 'var(--amber)',
     feedback: feedback?.status === 'pass' ? 'var(--green-bright)' : 'var(--amber)',
   };
 
@@ -191,11 +191,11 @@ export function SimulatorPage({ callsign, userId, speak, cancel }: Props) {
             <div className={styles.radioMeta}>{t.simulator.radio.vhfComm}</div>
             <div className={styles.freqDisplay}>{currentScenario?.freq ?? t.simulator.radio.freqEmpty}</div>
           </div>
-          <div style={{ textAlign:'center' }}>
+          <div style={{ textAlign: 'center' }}>
             <div className={styles.radioMeta}>{t.simulator.radio.squawk}</div>
             <div className={styles.squawkDisplay}>{currentScenario?.squawk ?? t.simulator.radio.squawkEmpty}</div>
           </div>
-          <div style={{ textAlign:'right' }}>
+          <div style={{ textAlign: 'right' }}>
             <div className={styles.radioMeta}>{t.simulator.radio.status}</div>
             <div className={styles.stateDisplay} style={{ color: stateColor[simState] }}>
               {stateLabel[simState]}
@@ -212,7 +212,7 @@ export function SimulatorPage({ callsign, userId, speak, cancel }: Props) {
               <span className={styles.src}>
                 {e.source === 'atc' ? t.simulator.log.labelAtc
                   : e.source === 'pilot' ? t.simulator.log.labelPilot
-                  : t.simulator.log.labelSys}
+                    : t.simulator.log.labelSys}
               </span>
               <span className={styles.entryText}>{e.text}</span>
             </div>
@@ -241,7 +241,7 @@ export function SimulatorPage({ callsign, userId, speak, cancel }: Props) {
             onMouseUp={stopTx}
             onTouchStart={(e) => { e.preventDefault(); startTx(); }}
             onTouchEnd={(e) => { e.preventDefault(); stopTx(); }}
-            disabled={['idle','atc_speaking','evaluating'].includes(simState)}
+            disabled={['idle', 'atc_speaking', 'evaluating'].includes(simState)}
           >
             {simState === 'transmitting' ? t.simulator.buttons.transmitting : t.simulator.buttons.holdPtt}
           </button>
@@ -276,8 +276,8 @@ function Waveform({ active }: { active: boolean }) {
 }
 
 function FeedbackPanel({ feedback }: { feedback: FeedbackResult }) {
-  const colors = { pass:'var(--green-bright)', partial:'var(--amber)', fail:'var(--red)', idle:'var(--green-dim)' };
-  const labels = { pass: t.simulator.feedback.pass, partial: t.simulator.feedback.partial, fail: t.simulator.feedback.retry, idle:'' };
+  const colors = { pass: 'var(--green-bright)', partial: 'var(--amber)', fail: 'var(--red)', idle: 'var(--green-dim)' };
+  const labels = { pass: t.simulator.feedback.pass, partial: t.simulator.feedback.partial, fail: t.simulator.feedback.retry, idle: '' };
   return (
     <div className={styles.feedbackPanel}>
       <div className={styles.fbHeader}>
@@ -286,7 +286,7 @@ function FeedbackPanel({ feedback }: { feedback: FeedbackResult }) {
       </div>
       <div className={styles.checkList}>
         {feedback.checkResults.map((r, i) => (
-          <div key={i} className={`${styles.checkItem} ${r.warning?(r.passed?styles.checkOk:styles.checkWarn):r.passed?styles.checkOk:styles.checkFail}`}>
+          <div key={i} className={`${styles.checkItem} ${r.warning ? (r.passed ? styles.checkOk : styles.checkWarn) : r.passed ? styles.checkOk : styles.checkFail}`}>
             <span className={styles.checkIcon}>
               {r.warning && !r.passed ? t.simulator.feedback.checkWarn : r.passed ? t.simulator.feedback.checkOk : t.simulator.feedback.checkFail}
             </span>

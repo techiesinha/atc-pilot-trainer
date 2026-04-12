@@ -1,19 +1,19 @@
 import React, { useCallback } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import styles from './App.module.css';
 import { Nav } from './components/Nav/Nav';
-import { UserRegistration } from './components/UserRegistration/UserRegistration';
 import { ProfileSetup } from './components/ProfileSetup/ProfileSetup';
-import { SimulatorPage } from './pages/SimulatorPage';
+import { UserRegistration } from './components/UserRegistration/UserRegistration';
+import { useCallsign } from './hooks/useCallsign';
+import { useSpeechSynthesis } from './hooks/useSpeechSynthesis';
+import { useUser } from './hooks/useUser';
+import { t } from './locales';
+import { FeedbackPage } from './pages/FeedbackPage';
+import { LegalPage } from './pages/LegalPage';
 import { MetarPage } from './pages/MetarPage';
 import { PhoneticPage } from './pages/PhoneticPage';
 import { ProgressPage } from './pages/ProgressPage';
-import { FeedbackPage } from './pages/FeedbackPage';
-import { LegalPage } from './pages/LegalPage';
-import { useUser } from './hooks/useUser';
-import { useCallsign } from './hooks/useCallsign';
-import { useSpeechSynthesis } from './hooks/useSpeechSynthesis';
-import { t } from './locales';
-import styles from './App.module.css';
+import { SimulatorPage } from './pages/SimulatorPage';
 
 export default function App() {
   const { user, needsRegistration, loading, savePending, completeProfile, clearUser } = useUser();

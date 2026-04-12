@@ -1,12 +1,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { config } from '../../config';
+import { t } from '../../locales';
+import { VoicePreference, AppUser } from '../../types';
 import { Clock } from '../Clock/Clock';
 import { CockpitPlacard } from '../CockpitPlacard/CockpitPlacard';
-import { VoiceSelector } from '../VoiceSelector/VoiceSelector';
 import { UserProfile } from '../UserProfile/UserProfile';
-import { VoicePreference, AppUser } from '../../types';
-import { t } from '../../locales';
-import { config } from '../../config';
+import { VoiceSelector } from '../VoiceSelector/VoiceSelector';
 import styles from './Nav.module.css';
 
 const LINKS = [

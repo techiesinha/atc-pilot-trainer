@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
-import { AppUser } from '../types';
-import { getSupabaseClient, getSessionUser, updateUserProfile } from '../services/userService';
+import { useState, useEffect, useCallback } from 'react';
 import { log } from '../config';
+import { getSupabaseClient, getSessionUser, updateUserProfile } from '../services/userService';
+import { AppUser } from '../types';
 
 const STORAGE_KEY = 'atcUser';
 const OAUTH_PROGRESS_KEY = 'atcOAuthInProgress';

@@ -11,6 +11,8 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
+import importPlugin from 'eslint-plugin-import';
+
 
 export default tseslint.config(
   // Base JS recommended rules
@@ -22,8 +24,9 @@ export default tseslint.config(
   // Project-specific config
   {
     plugins: {
-      react:          reactPlugin,
-      'react-hooks':  reactHooks,
+      react: reactPlugin,
+      'react-hooks': reactHooks,
+      import: importPlugin,   // ← add this line
     },
 
     settings: {
@@ -32,26 +35,39 @@ export default tseslint.config(
 
     rules: {
       // React hooks — must follow rules of hooks
-      'react-hooks/rules-of-hooks':  'error',
+      'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
 
       // TypeScript
-      '@typescript-eslint/no-explicit-any':       'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', {
-        argsIgnorePattern:      '^_',
-        varsIgnorePattern:      '^_',
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
         caughtErrorsIgnorePattern: '^_',
       }],
       '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/no-non-null-assertion':         'warn',
+      '@typescript-eslint/no-non-null-assertion': 'warn',
 
       // General code quality
-      'no-console':        ['warn', { allow: ['warn', 'error'] }],
-      'no-debugger':       'error',
-      'prefer-const':      'warn',
-      'no-var':            'error',
-      'eqeqeq':            ['warn', 'always'],
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-debugger': 'error',
+      'prefer-const': 'warn',
+      'no-var': 'error',
+      'eqeqeq': ['warn', 'always'],
       'no-duplicate-imports': 'error',
+
+      // Import organisation
+      'import/order': ['warn', {
+        groups: [
+          'builtin',
+          'external',
+          'internal',
+          'parent',
+          'sibling',
+          'index',
+        ],
+        alphabetize: { order: 'asc', caseInsensitive: true },
+      }],
     },
   },
 

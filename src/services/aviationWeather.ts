@@ -1,5 +1,5 @@
-import { MetarData, MetarInterpretation } from '../types';
 import { config, log } from '../config';
+import { MetarData, MetarInterpretation } from '../types';
 
 /**
  * METAR Service — two sources, automatic fallback

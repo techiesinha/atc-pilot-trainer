@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { AppUser } from '../../types';
 import { t } from '../../locales';
+import { AppUser } from '../../types';
 import styles from './UserProfile.module.css';
 
 interface Props {

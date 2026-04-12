@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { VoicePreference } from '../../types';
 import { t } from '../../locales';
+import { VoicePreference } from '../../types';
 import styles from './VoiceSelector.module.css';
 
 interface Props {

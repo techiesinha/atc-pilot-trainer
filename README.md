@@ -184,7 +184,7 @@ This project is not open for code contributions. The source code is made availab
 
 ## License
 
-**© 2025 Abhishek Sinha. All rights reserved.**
+**© 2025-2026 Abhishek Sinha. All rights reserved.**
 
 Permission is granted to use this application for personal, non-commercial flight training study purposes only.
 

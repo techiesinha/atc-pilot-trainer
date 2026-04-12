@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { signInWithGoogle } from '../../services/userService';
 import { t } from '../../locales';
+import { signInWithGoogle } from '../../services/userService';
 import styles from './UserRegistration.module.css';
 
 interface Props {

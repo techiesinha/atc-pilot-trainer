@@ -1,15 +1,15 @@
 /**
- * © 2025 Abhishek Sinha. All rights reserved.
+ * © 2025-2026 Abhishek Sinha. All rights reserved.
  * ATC Pilot Trainer — For training purposes only.
  * Unauthorised copying or reproduction without prior written permission is prohibited.
  */
 import React, { useState } from 'react';
-import { sendFeedback } from '../services/emailService';
+import { UpiDonation } from '../components/UpiDonation/UpiDonation';
 import { config } from '../config';
 import { t } from '../locales';
-import styles from './FeedbackPage.module.css';
-import { UpiDonation } from '../components/UpiDonation/UpiDonation';
+import { sendFeedback } from '../services/emailService';
 import { AppUser } from '../types';
+import styles from './FeedbackPage.module.css';
 
 type FormState = 'idle' | 'sending' | 'sent' | 'error';
 

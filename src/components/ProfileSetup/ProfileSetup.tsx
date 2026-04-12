@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { detectCountry } from '../../services/userService';
 import { t } from '../../locales';
+import { detectCountry } from '../../services/userService';
 import styles from './ProfileSetup.module.css';
 
 interface Props {
