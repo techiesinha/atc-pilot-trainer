@@ -21,7 +21,6 @@ export default function App() {
 
   const handleClearUser = useCallback(() => {
     clearUser();
-    window.location.reload();
   }, [clearUser]);
 
   if (loading) {
@@ -53,12 +52,12 @@ export default function App() {
 
         <div className={styles.content}>
           <Routes>
-            <Route path="/"         element={<SimulatorPage callsign={callsign} userId={user?.id} speak={speak} cancel={cancel} />} />
-            <Route path="/metar"    element={<MetarPage />} />
+            <Route path="/" element={<SimulatorPage callsign={callsign} userId={user?.id} speak={speak} cancel={cancel} />} />
+            <Route path="/metar" element={<MetarPage />} />
             <Route path="/phonetic" element={<PhoneticPage />} />
             <Route path="/progress" element={<ProgressPage />} />
             <Route path="/feedback" element={<FeedbackPage />} />
-            <Route path="/legal"    element={<LegalPage />} />
+            <Route path="/legal" element={<LegalPage />} />
           </Routes>
         </div>
       </div>

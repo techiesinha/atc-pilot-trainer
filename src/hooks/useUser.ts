@@ -24,6 +24,17 @@ export function useUser() {
       setLoading(false);
     };
 
+    const logout = () => {
+      // Use setState directly — resolve() is a no-op once the user
+      // is already in the app
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(PENDING_LEVEL_KEY);
+      localStorage.removeItem(PENDING_COUNTRY_KEY);
+      setUser(null);
+      setNeedsRegistration(true);
+      setLoading(false);
+    }
+
     // ── A: existing localStorage session ─────────────────────────────────────
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -105,8 +116,7 @@ export function useUser() {
             break;
 
           case 'SIGNED_OUT':
-            localStorage.removeItem(STORAGE_KEY);
-            resolve(null, true);
+            logout();
             break;
 
           default:
