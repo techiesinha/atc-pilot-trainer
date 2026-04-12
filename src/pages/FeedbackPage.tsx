@@ -13,13 +13,13 @@ import { UpiDonation } from '../components/UpiDonation/UpiDonation';
 type FormState = 'idle' | 'sending' | 'sent' | 'error';
 
 export function FeedbackPage() {
-  const [type, setType]           = useState(t.feedback.types[0]);
-  const [name, setName]           = useState('');
-  const [email, setEmail]         = useState('');
-  const [pilotLevel, setLevel]    = useState(t.registration.pilotLevels[0]);
-  const [message, setMessage]     = useState('');
+  const [type, setType] = useState(t.feedback.types[0]);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [pilotLevel, setLevel] = useState(t.registration.pilotLevels[0]);
+  const [message, setMessage] = useState('');
   const [formState, setFormState] = useState<FormState>('idle');
-  const [errorMsg, setErrorMsg]   = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,12 +27,12 @@ export function FeedbackPage() {
     setFormState('sending'); setErrorMsg('');
     try {
       await sendFeedback({
-        from_name:     name.trim(),
-        from_email:    email.trim(),
-        sent_time:     new Date().toUTCString(),
-        pilot_level:   pilotLevel,
+        from_name: name.trim(),
+        from_email: email.trim(),
+        sent_time: new Date().toUTCString(),
+        pilot_level: pilotLevel,
         feedback_type: type,
-        message:       message.trim(),
+        message: message.trim(),
       });
       setFormState('sent');
     } catch (err) {
@@ -56,7 +56,7 @@ export function FeedbackPage() {
           <p>{t.feedback.intro.description}</p>
         </div>
         <div className={styles.badges}>
-          <span className={styles.badge}>{t.feedback.badges.spl}</span>
+          <span className={styles.badge}>{t.feedback.badges.pilotLicense}</span>
           <span className={styles.badge}>{t.feedback.badges.aircraft}</span>
           <span className={styles.badge}>{config.developer.hamCallsign}</span>
           <span className={styles.badge}>{t.feedback.badges.ceh}</span>
