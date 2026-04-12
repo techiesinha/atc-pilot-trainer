@@ -17,7 +17,7 @@ export const en = {
     name: 'ATC Pilot Trainer',
     tagline: 'Radio Communication Trainer for Student Pilots',
     aircraft: 'Cessna 172R',
-    builtBy: 'Built by a Pilot · Cessna 172R · India',
+    builtBy: 'For the pilots by a pilot · India',
     version: 'v',               // prefix before version number e.g. "v1.0.0"
     loading: 'ATC',
     loadingSub: 'TRAINER',
@@ -75,7 +75,7 @@ export const en = {
   registration: {
     logoMain: 'ATC',
     logoSub: 'PILOT TRAINER',
-    tagline: 'Built by a Pilot · Cessna 172R · India',
+    tagline: 'For the pilots by a pilot · India',
     description: 'Practice ICAO radio phraseology, decode live METARs, and drill the phonetic alphabet — all in one tool built specifically for student pilots.',
     formTitle: 'SET UP YOUR PILOT PROFILE',
     levelLabel: 'PILOT LEVEL',
@@ -83,7 +83,7 @@ export const en = {
     googleBtn: 'Continue with Google',
     errorGeneric: 'Sign in failed. Please try again.',
     submitLoading: 'Redirecting to Google...',
-    privacy: 'Your name and email are provided by Google and used only to personalise your profile. Your data is never shared or sold.',
+    privacy: 'Your name and email are provided by Google and used only to personalise your profile. Your data is never shared.',
     pilotLevels: [
       'Student pilot (PPL training)',
       'Student pilot (CPL training)',
@@ -403,7 +403,7 @@ export const en = {
     signedInAs: 'SIGNED IN AS',
     pilotLevel: 'PILOT LEVEL',
     clearProfile: 'Logout',
-    clearConfirm: 'Reset your profile? You will be asked to register again on next visit.',
+    clearConfirm: 'Are you sure you want to logout?',
   },
 };
 
