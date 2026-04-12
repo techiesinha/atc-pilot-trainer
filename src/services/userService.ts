@@ -2,30 +2,8 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { config, log } from '../config';
 import { AppUser } from '../types';
 
-/**
- * User Service
- *
- * Handles Google OAuth sign-in and Supabase user tracking.
- *
- * OAuth flow:
- *   1. signInWithGoogle()    — saves pending prefs, redirects to Google
- *   2. onAuthStateChange()   — fires SIGNED_IN when token is ready (in useUser.ts)
- *   3. getSessionUser()      — builds AppUser from the active session + RPC
- *
- * The Supabase client is created eagerly (not lazily inside a function).
- * This is critical — the client must exist the moment the module loads so it
- * can immediately process the OAuth token from the URL hash on redirect return.
- *
- * Email lives in Supabase identities table only.
- * The app stores users.id locally — never the email.
- */
-
 let supabaseClient: SupabaseClient | null = null;
 
-/**
- * Returns the shared Supabase client.
- * Exported so useUser.ts can subscribe to onAuthStateChange.
- */
 export function getSupabaseClient(): SupabaseClient | null {
   const { url, anonKey } = config.tracking.supabase;
   if (!url || !anonKey) {
@@ -39,16 +17,49 @@ export function getSupabaseClient(): SupabaseClient | null {
   return supabaseClient;
 }
 
-// Internal alias
 function getClient() { return getSupabaseClient(); }
+
+// ── Country detection from timezone ──────────────────────────────────────────
+
+const TIMEZONE_TO_COUNTRY: Record<string, string> = {
+  'Asia/Kolkata': 'India',
+  'Asia/Calcutta': 'India',
+  'Europe/London': 'United Kingdom',
+  'America/New_York': 'United States',
+  'America/Chicago': 'United States',
+  'America/Denver': 'United States',
+  'America/Los_Angeles': 'United States',
+  'Australia/Sydney': 'Australia',
+  'Australia/Melbourne': 'Australia',
+  'America/Toronto': 'Canada',
+  'America/Vancouver': 'Canada',
+  'Africa/Johannesburg': 'South Africa',
+  'Asia/Dubai': 'UAE',
+  'Asia/Singapore': 'Singapore',
+  'Pacific/Auckland': 'New Zealand',
+  'Asia/Karachi': 'Pakistan',
+  'Asia/Colombo': 'Sri Lanka',
+  'Asia/Dhaka': 'Bangladesh',
+  'Asia/Kathmandu': 'Nepal',
+  'Asia/Kuala_Lumpur': 'Malaysia',
+  'Asia/Manila': 'Philippines',
+  'Africa/Lagos': 'Nigeria',
+  'Africa/Nairobi': 'Kenya',
+};
+
+export function detectCountry(): string {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const country = TIMEZONE_TO_COUNTRY[tz];
+  if (country) {
+    log.info('Country from timezone', tz, '→', country);
+    return country;
+  }
+  log.info('Timezone not mapped:', tz, '— defaulting to India');
+  return 'India';
+}
 
 // ── Google OAuth ──────────────────────────────────────────────────────────────
 
-/**
- * Redirects the browser to Google for authentication.
- * The pending pilot level and country must be saved to localStorage
- * BEFORE calling this — they survive the redirect and are read on return.
- */
 export async function signInWithGoogle(): Promise<void> {
   const sb = getClient();
   if (!sb) {
@@ -56,33 +67,19 @@ export async function signInWithGoogle(): Promise<void> {
       'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local'
     );
   }
-
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo: window.location.origin,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
-      },
+      queryParams: { access_type: 'offline', prompt: 'consent' },
     },
   });
-
   if (error) throw new Error(error.message);
 }
 
-/**
- * Builds an AppUser from the active Supabase session.
- * Called inside onAuthStateChange after the SIGNED_IN event fires —
- * at this point the session is guaranteed to be valid.
- *
- * Calls the get_or_create_user RPC to create or fetch the Supabase profile.
- * Returns null if anything fails — the caller shows the registration modal.
- */
-export async function getSessionUser(
-  pendingPilotLevel: string,
-  pendingCountry: string
-): Promise<AppUser | null> {
+// ── Session user ──────────────────────────────────────────────────────────────
+
+export async function getSessionUser(): Promise<AppUser | null> {
   const sb = getClient();
   if (!sb) return null;
 
@@ -107,14 +104,14 @@ export async function getSessionUser(
   const { data, error: rpcError } = await sb.rpc(rpcName, {
     p_email: email,
     p_name: name,
-    p_country: pendingCountry,
-    p_pilot_level: pendingPilotLevel,
+    p_country: detectCountry(),
+    p_pilot_level: 'Student pilot',
     p_provider: 'google',
     p_provider_id: googleUser.id,
   });
 
   if (rpcError) {
-    log.warn('get_or_create_user RPC error:', rpcError.message);
+    log.warn('RPC error:', JSON.stringify(rpcError));
     return null;
   }
 
@@ -124,18 +121,44 @@ export async function getSessionUser(
     return null;
   }
 
-  log.info(row.is_new_user ? 'New user created:' : 'Returning user:', row.user_id);
+  log.info(row.is_new_user ? 'New user:' : 'Returning user:', row.user_id);
 
   return {
     id: row.user_id,
     name,
     email,
-    country: pendingCountry,
-    pilotLevel: pendingPilotLevel,
+    country: detectCountry(),
+    pilotLevel: 'Student pilot',
     registeredAt: new Date().toISOString(),
     lastSeen: new Date().toISOString(),
     sessions: 1,
+    isNewUser: row.is_new_user,
   };
+}
+
+// ── Profile update ────────────────────────────────────────────────────────────
+
+export async function updateUserProfile(
+  userId: string,
+  country: string,
+  pilotLevel: string
+): Promise<void> {
+  const sb = getClient();
+  if (!sb) return;
+
+  const tableName = config.tracking.supabase.usersTable;
+
+  const { error } = await sb
+    .from(tableName)
+    .update({ country, pilot_level: pilotLevel })
+    .eq('id', userId);
+
+  if (error) {
+    log.warn('updateUserProfile error:', error.message);
+    throw new Error(error.message);
+  }
+
+  log.info('Profile updated:', userId, '| country:', country, '| level:', pilotLevel);
 }
 
 // ── Event logging ─────────────────────────────────────────────────────────────

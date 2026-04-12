@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Nav } from './components/Nav/Nav';
 import { UserRegistration } from './components/UserRegistration/UserRegistration';
+import { ProfileSetup } from './components/ProfileSetup/ProfileSetup';
 import { SimulatorPage } from './pages/SimulatorPage';
 import { MetarPage } from './pages/MetarPage';
 import { PhoneticPage } from './pages/PhoneticPage';
@@ -15,7 +16,7 @@ import { t } from './locales';
 import styles from './App.module.css';
 
 export default function App() {
-  const { user, needsRegistration, loading, savePending, clearUser } = useUser();
+  const { user, needsRegistration, loading, savePending, completeProfile, clearUser } = useUser();
   const { callsign, reroll } = useCallsign();
   const { speak, cancel, voicePref, availableVoices, setVoiceGender, setVoiceName } = useSpeechSynthesis();
 
@@ -36,6 +37,13 @@ export default function App() {
     <BrowserRouter>
       {needsRegistration && (
         <UserRegistration onSavePending={savePending} />
+      )}
+
+      {!needsRegistration && user?.isNewUser && (
+        <ProfileSetup
+          name={user.name}
+          onComplete={completeProfile}
+        />
       )}
 
       <div className={styles.shell}>

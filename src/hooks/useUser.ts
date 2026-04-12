@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { AppUser } from '../types';
-import { getSupabaseClient, getSessionUser } from '../services/userService';
+import { getSupabaseClient, getSessionUser, updateUserProfile } from '../services/userService';
 import { log } from '../config';
 
 const STORAGE_KEY = 'atcUser';
-const PENDING_LEVEL_KEY = 'atcPendingPilotLevel';
-const PENDING_COUNTRY_KEY = 'atcPendingCountry';
+const OAUTH_PROGRESS_KEY = 'atcOAuthInProgress';
 
 export function useUser() {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -24,18 +23,6 @@ export function useUser() {
       setLoading(false);
     };
 
-    const logout = () => {
-      // Use setState directly — resolve() is a no-op once the user
-      // is already in the app
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(PENDING_LEVEL_KEY);
-      localStorage.removeItem(PENDING_COUNTRY_KEY);
-      setUser(null);
-      setNeedsRegistration(true);
-      setLoading(false);
-    }
-
-    // ── A: existing localStorage session ─────────────────────────────────────
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
@@ -52,15 +39,7 @@ export function useUser() {
       return;
     }
 
-    // ── OAuth return detection ─────────────────────────────────────────────────
-    // PRIMARY signal: atcPendingPilotLevel is set by savePending() before
-    // signInWithGoogle() redirects the browser. It survives the full OAuth
-    // round-trip and is only cleared on success. If it exists, an OAuth
-    // exchange is in progress — do NOT show the registration modal yet.
-    //
-    // SECONDARY signals: URL params (unreliable — Supabase may have already
-    // cleaned them via history.replaceState before React runs).
-    const hasPendingAuth = localStorage.getItem(PENDING_LEVEL_KEY) !== null;
+    const hasPendingAuth = localStorage.getItem(OAUTH_PROGRESS_KEY) === 'true';
     const hasOAuthInUrl =
       window.location.hash.includes('access_token') ||
       window.location.hash.includes('error_description') ||
@@ -73,20 +52,14 @@ export function useUser() {
       '| hasPendingAuth:', hasPendingAuth,
       '| hasOAuthInUrl:', hasOAuthInUrl);
 
-    // ── Build AppUser from an active Supabase session ─────────────────────────
     const buildUser = async (_session: Session) => {
-      const pendingLevel = localStorage.getItem(PENDING_LEVEL_KEY) ?? 'Student pilot (PPL training)';
-      const pendingCountry = localStorage.getItem(PENDING_COUNTRY_KEY) ?? 'India';
-
       try {
-        const sessionUser = await getSessionUser(pendingLevel, pendingCountry);
+        const sessionUser = await getSessionUser();
         if (sessionUser) {
-          localStorage.removeItem(PENDING_LEVEL_KEY);
-          localStorage.removeItem(PENDING_COUNTRY_KEY);
+          localStorage.removeItem(OAUTH_PROGRESS_KEY);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionUser));
           resolve(sessionUser, false);
         } else {
-          log.warn('getSessionUser returned null — RPC may have failed');
           resolve(null, true);
         }
       } catch (e) {
@@ -95,42 +68,37 @@ export function useUser() {
       }
     };
 
-    // ── Auth state listener ───────────────────────────────────────────────────
     const { data: { subscription } } = sb.auth.onAuthStateChange(
       (event, session) => {
         log.info('Auth event:', event, '| session:', !!session);
-
         switch (event) {
-
           case 'SIGNED_IN':
             if (session) buildUser(session);
             break;
-
           case 'INITIAL_SESSION':
             if (session) {
               buildUser(session);
             } else if (!isOAuthReturn) {
               resolve(null, true);
             }
-            // isOAuthReturn && !session: wait for SIGNED_IN
             break;
-
           case 'SIGNED_OUT':
-            logout();
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(OAUTH_PROGRESS_KEY);
+            setUser(null);
+            setNeedsRegistration(true);
+            setLoading(false);
             break;
-
           default:
             break;
         }
       }
     );
 
-    // ── Safety timeout ────────────────────────────────────────────────────────
     const safetyTimer = setTimeout(() => {
       if (!resolved) {
-        log.warn('Auth safety timeout — clearing pending auth and showing modal');
-        localStorage.removeItem(PENDING_LEVEL_KEY);
-        localStorage.removeItem(PENDING_COUNTRY_KEY);
+        log.warn('Auth safety timeout — showing registration modal');
+        localStorage.removeItem(OAUTH_PROGRESS_KEY);
         resolve(null, true);
       }
     }, 8000);
@@ -141,17 +109,31 @@ export function useUser() {
     };
   }, []);
 
-  const savePending = useCallback((pilotLevel: string, country: string) => {
-    localStorage.setItem(PENDING_LEVEL_KEY, pilotLevel);
-    localStorage.setItem(PENDING_COUNTRY_KEY, country);
+  const savePending = useCallback(() => {
+    localStorage.setItem(OAUTH_PROGRESS_KEY, 'true');
   }, []);
+
+  const completeProfile = useCallback(async (country: string, pilotLevel: string) => {
+    if (!user) return;
+    try {
+      await updateUserProfile(user.id, country, pilotLevel);
+    } catch (e) {
+      log.warn('completeProfile error — dismissing anyway:', e);
+    }
+    const updated = { ...user, country, pilotLevel, isNewUser: false };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    setUser(updated);
+  }, [user]);
 
   const clearUser = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(PENDING_LEVEL_KEY);
-    localStorage.removeItem(PENDING_COUNTRY_KEY);
-    getSupabaseClient()?.auth.signOut().catch(() => { });
+    localStorage.removeItem(OAUTH_PROGRESS_KEY);
+    getSupabaseClient()?.auth.signOut().catch((e) => {
+      log.warn('signOut error:', e);
+      setUser(null);
+      setNeedsRegistration(true);
+    });
   }, []);
 
-  return { user, needsRegistration, loading, savePending, clearUser };
+  return { user, needsRegistration, loading, savePending, completeProfile, clearUser };
 }
