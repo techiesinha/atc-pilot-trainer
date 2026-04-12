@@ -1,0 +1,47 @@
+.clock {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: #060d06;
+  border: 1px solid var(--green-dim);
+  border-radius: var(--radius);
+  padding: 5px 10px;
+  min-width: 130px;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--green-dim);
+  letter-spacing: 1px;
+  min-width: 24px;
+}
+
+.time {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--green-text);
+  letter-spacing: 1px;
+}
+
+.timeUtc {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--green-bright);
+  letter-spacing: 1px;
+}
+
+.date {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--green-dim);
+  letter-spacing: 1px;
+  margin-top: 2px;
+  text-align: right;
+}

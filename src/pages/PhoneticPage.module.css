@@ -1,0 +1,61 @@
+.page { max-width: 900px; margin: 0 auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 16px; }
+.header { margin-bottom: 4px; }
+.title  { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--green-bright); letter-spacing: 4px; }
+.subtitle { font-family: var(--font-mono); font-size: 9px; color: var(--green-dim); letter-spacing: 2px; margin-top: 4px; }
+
+.modeRow { display: flex; gap: 6px; flex-wrap: wrap; }
+.modeBtn {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; color: var(--green-mid);
+  border: var(--border); padding: 7px 14px; border-radius: var(--radius); transition: all 0.15s;
+}
+.modeBtn:hover { color: var(--green-bright); border-color: var(--green-bright); }
+.modeActive { color: var(--green-bright); border-color: var(--green-bright); background: var(--bg-raised); }
+
+.tableSection { display: flex; flex-direction: column; gap: 24px; }
+.alphaGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+.alphaCard {
+  background: var(--bg-panel); border: var(--border); border-radius: var(--radius);
+  padding: 10px; display: flex; flex-direction: column; gap: 2px; transition: border-color 0.15s;
+}
+.alphaCard:hover { border-color: var(--green-mid); }
+.alphaLetter   { font-family: var(--font-mono); font-size: 22px; font-weight: bold; color: var(--green-bright); }
+.alphaPhonetic { font-family: var(--font-ui); font-size: 13px; font-weight: 500; color: var(--green-text); }
+.alphaExample  { font-family: var(--font-ui); font-size: 10px; color: var(--green-dim); }
+
+.numSection { display: flex; flex-direction: column; gap: 10px; }
+.numTitle { font-family: var(--font-mono); font-size: 9px; color: var(--green-dim); letter-spacing: 2px; }
+.numGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.numCard { background: var(--bg-panel); border: var(--border); border-radius: var(--radius); padding: 10px; text-align: center; }
+.numDigit  { font-family: var(--font-mono); font-size: 24px; color: var(--amber); }
+.numSpoken { font-family: var(--font-ui); font-size: 11px; color: var(--green-text); margin-top: 2px; }
+.numNote   { font-family: var(--font-ui); font-size: 12px; color: var(--green-mid); line-height: 1.6; background: var(--bg-panel); border: var(--border); border-radius: var(--radius); padding: 10px 14px; }
+
+/* DRILL */
+.drill { display: flex; flex-direction: column; gap: 16px; animation: fadeIn 0.2s ease; }
+.scoreRow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pill { font-family: var(--font-mono); font-size: 11px; color: var(--green-mid); background: var(--bg-panel); border: var(--border); padding: 4px 10px; border-radius: var(--radius); }
+.pill strong { color: var(--green-bright); }
+.progress { font-family: var(--font-mono); font-size: 10px; color: var(--green-dim); margin-left: auto; letter-spacing: 1px; }
+
+.questionCard { background: var(--bg-panel); border: var(--border-bright); border-radius: var(--radius-lg); padding: 28px; text-align: center; }
+.qLabel { font-family: var(--font-mono); font-size: 9px; color: var(--green-dim); letter-spacing: 2px; margin-bottom: 16px; }
+.qValue { font-family: var(--font-mono); font-size: 52px; font-weight: bold; color: var(--green-bright); letter-spacing: 4px; }
+
+.answerRow { display: flex; gap: 8px; }
+.answerInput { flex: 1; font-size: 16px; letter-spacing: 2px; }
+.checkBtn { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.5px; color: var(--green-bright); border: 2px solid var(--green-bright); padding: 8px 18px; border-radius: var(--radius); transition: all 0.15s; }
+.checkBtn:hover { background: var(--bg-raised); }
+
+.resultCorrect, .resultWrong {
+  display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-radius: var(--radius-lg);
+  font-family: var(--font-mono); font-size: 14px; animation: fadeIn 0.2s ease;
+}
+.resultCorrect { background: #060f06; border: 1px solid var(--green-bright); color: var(--green-bright); }
+.resultWrong   { background: #120a00; border: 1px solid var(--amber); color: var(--amber); }
+.resultCorrect strong, .resultWrong strong { color: var(--white); }
+
+.rIcon { font-size: 22px; flex-shrink: 0; }
+.hint  { font-family: var(--font-ui); font-size: 11px; color: var(--green-mid); margin-top: 4px; line-height: 1.5; }
+
+.nextBtn { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.5px; color: var(--green-mid); border: var(--border); padding: 7px 16px; border-radius: var(--radius); margin-left: auto; transition: all 0.15s; }
+.nextBtn:hover { color: var(--green-bright); border-color: var(--green-bright); }

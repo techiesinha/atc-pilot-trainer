@@ -1,0 +1,28 @@
+.footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--green-dim);
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-panel);
+  gap: 12px;
+}
+
+.copyright {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--green-mid);
+  letter-spacing: 1px;
+}
+
+.legalLink {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--green-dim);
+  letter-spacing: 1px;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.legalLink:hover { color: var(--green-mid); }

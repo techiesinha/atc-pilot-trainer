@@ -1,0 +1,40 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--green-dim);
+  letter-spacing: 1.5px;
+  white-space: nowrap;
+}
+
+.select {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--green-bright);
+  background: var(--bg-surface);
+  border: var(--border-bright);
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  outline: none;
+  cursor: pointer;
+  max-width: 180px;
+}
+
+.select:focus { border-color: var(--green-bright); }
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 1px;
+  padding: 2px 7px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+
+.controlled   { background: #0a2a0a; color: var(--green-bright); border: 1px solid var(--green-dim); }
+.uncontrolled { background: #1a0a2a; color: #c084fc; border: 1px solid #4a2a6a; }

@@ -1,0 +1,43 @@
+import { PhoneticItem } from '../types';
+
+export const PHONETIC_ALPHABET: PhoneticItem[] = [
+  { letter:'A', phonetic:'Alpha',    example:'Alpha Centauri' },
+  { letter:'B', phonetic:'Bravo',    example:'Bravo team' },
+  { letter:'C', phonetic:'Charlie',  example:'Charlie Chaplin' },
+  { letter:'D', phonetic:'Delta',    example:'Delta force' },
+  { letter:'E', phonetic:'Echo',     example:'Echo chamber' },
+  { letter:'F', phonetic:'Foxtrot',  example:'Foxtrot dance' },
+  { letter:'G', phonetic:'Golf',     example:'Golf course' },
+  { letter:'H', phonetic:'Hotel',    example:'Hotel room' },
+  { letter:'I', phonetic:'India',    example:'India Gate' },
+  { letter:'J', phonetic:'Juliet',   example:'Juliet Romeo' },
+  { letter:'K', phonetic:'Kilo',     example:'Kilo weight' },
+  { letter:'L', phonetic:'Lima',     example:'Lima, Peru' },
+  { letter:'M', phonetic:'Mike',     example:'Mike check' },
+  { letter:'N', phonetic:'November', example:'November rain' },
+  { letter:'O', phonetic:'Oscar',    example:'Oscar award' },
+  { letter:'P', phonetic:'Papa',     example:'Papa bear' },
+  { letter:'Q', phonetic:'Quebec',   example:'Quebec city' },
+  { letter:'R', phonetic:'Romeo',    example:'Romeo Juliet' },
+  { letter:'S', phonetic:'Sierra',   example:'Sierra Nevada' },
+  { letter:'T', phonetic:'Tango',    example:'Tango dance' },
+  { letter:'U', phonetic:'Uniform',  example:'Uniform code' },
+  { letter:'V', phonetic:'Victor',   example:'Victor Hugo' },
+  { letter:'W', phonetic:'Whiskey',  example:'Whiskey glass' },
+  { letter:'X', phonetic:'X-ray',    example:'X-ray scan' },
+  { letter:'Y', phonetic:'Yankee',   example:'Yankee doodle' },
+  { letter:'Z', phonetic:'Zulu',     example:'Zulu time (UTC)' },
+];
+
+export const AVIATION_NUMBERS = [
+  { digit:'0', spoken:'Zero'  },
+  { digit:'1', spoken:'One'   },
+  { digit:'2', spoken:'Two'   },
+  { digit:'3', spoken:'Tree'  },
+  { digit:'4', spoken:'Fower' },
+  { digit:'5', spoken:'Fife'  },
+  { digit:'6', spoken:'Six'   },
+  { digit:'7', spoken:'Seven' },
+  { digit:'8', spoken:'Ait'   },
+  { digit:'9', spoken:'Niner' },
+];

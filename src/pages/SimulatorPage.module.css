@@ -1,0 +1,381 @@
+/* ── PAGE LAYOUT ─────────────────────────────────────────────────────────── */
+.page {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── SIDEBAR ─────────────────────────────────────────────────────────────── */
+.sidebar {
+  width: 230px;
+  min-width: 190px;
+  background: var(--bg-panel);
+  border-right: var(--border-bright);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.towerWrap {
+  padding: 10px 10px 8px;
+  border-bottom: var(--border);
+  flex-shrink: 0;
+}
+
+.catList {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 3px;
+  border-bottom: var(--border);
+  flex-shrink: 0;
+}
+
+.catBtn {
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  border: var(--border);
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.catBtn:hover { border-color: var(--cat, var(--green-bright)); }
+.catActive    { border-color: var(--cat, var(--green-bright)); background: var(--bg-raised); }
+
+.catLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--cat, var(--green-bright));
+}
+
+.catDesc {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  color: var(--green-dim);
+}
+
+.scenList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scenBtn {
+  width: 100%;
+  text-align: left;
+  padding: 9px 11px;
+  border-radius: var(--radius);
+  border: var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.15s;
+}
+
+.scenBtn:hover { border-color: var(--green-mid); background: var(--bg-surface); }
+.scenActive    { border-color: var(--green-bright); background: var(--bg-raised); }
+
+.scenLabel {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--green-text);
+}
+
+.diff {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  align-self: flex-start;
+}
+
+.basic        { background: #0a1f0a; color: var(--green-bright); }
+.intermediate { background: #1f1500; color: var(--amber); }
+.advanced     { background: #1f0808; color: var(--red); }
+
+/* ── MAIN PANEL ──────────────────────────────────────────────────────────── */
+/*
+ * FIX FOR CLIPPED FEEDBACK:
+ * The main panel is a scrollable column.
+ * The transcript has a flex:1 min-height so it always shows something,
+ * but the overall column overflows and the user can scroll down to see
+ * the full feedback panel — which has NO max-height restriction.
+ */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 14px;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* ── RADIO HEAD ──────────────────────────────────────────────────────────── */
+.radioHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-panel);
+  border: var(--border-bright);
+  border-radius: var(--radius-lg);
+  padding: 12px 18px;
+  flex-shrink: 0;
+}
+
+.radioMeta {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--green-dim);
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.freqDisplay {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--green-bright);
+  letter-spacing: 3px;
+}
+
+.squawkDisplay {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  color: var(--green-bright);
+  letter-spacing: 3px;
+}
+
+.stateDisplay {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  transition: color 0.3s;
+}
+
+/* ── TRANSCRIPT ──────────────────────────────────────────────────────────── */
+.transcript {
+  flex-shrink: 0;
+  height: 200px;
+  overflow-y: auto;
+  background: var(--bg-panel);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.empty {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--green-dim);
+  text-align: center;
+  margin: auto;
+  letter-spacing: 1px;
+}
+
+.entry {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  animation: fadeIn 0.2s ease;
+}
+
+.src {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  min-width: 40px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.entryText {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.atc  .src  { color: var(--blue); }
+.atc  .entryText { color: #85b7eb; }
+.pilot .src  { color: var(--green-bright); }
+.pilot .entryText { color: var(--green-bright); }
+.system .src  { color: var(--green-mid); }
+.system .entryText { color: var(--green-mid); font-style: italic; }
+
+.cursor { animation: blink 0.7s infinite; }
+
+/* ── WAVEFORM ────────────────────────────────────────────────────────────── */
+.waveform {
+  height: 38px;
+  background: var(--bg-panel);
+  border: var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 8px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.waveBar        { width: 3px; background: var(--green-dim); border-radius: 2px; transition: height 0.05s ease; }
+.waveBarActive  { background: var(--green-bright); }
+
+/* ── CONTROLS ────────────────────────────────────────────────────────────── */
+.controls {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.replayBtn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--green-mid);
+  border: var(--border);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.replayBtn:hover:not(:disabled) { color: var(--green-bright); border-color: var(--green-bright); }
+.replayBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.pttBtn {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--green-bright);
+  border: 2px solid var(--green-bright);
+  padding: 12px;
+  border-radius: var(--radius);
+  transition: all 0.1s;
+  user-select: none;
+}
+
+.pttBtn:not(:disabled):hover { background: var(--bg-raised); }
+.pttBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+.pttActive { background: var(--green-dim); animation: pulse 1s infinite; }
+
+/* ── FEEDBACK PANEL ──────────────────────────────────────────────────────── */
+/*
+ * KEY FIX: No max-height here. The panel grows to its natural size.
+ * The parent .main is overflow-y: auto so the user scrolls down to see all of it.
+ * This permanently fixes the bottom-clipping issue.
+ */
+.feedbackPanel {
+  background: var(--bg-panel);
+  border: var(--border-bright);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fadeIn 0.3s ease;
+  margin-bottom: 8px;
+}
+
+.fbHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fbStatus {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 3px;
+}
+
+.fbScore {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  color: var(--green-bright);
+}
+
+.checkList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkItem {
+  display: flex;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.checkIcon  { min-width: 14px; font-size: 12px; flex-shrink: 0; }
+.checkLabel { color: inherit; }
+.checkDetail { font-size: 10px; margin-top: 2px; color: #5a6a5a; }
+.checkOk    { color: var(--green-bright); }
+.checkWarn  { color: var(--amber); }
+.checkFail  { color: var(--red); }
+
+.refBox, .teachBox {
+  background: var(--bg-surface);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+}
+
+.boxLabel {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--green-dim);
+  letter-spacing: 2px;
+  margin-bottom: 7px;
+}
+
+.refText {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--green-bright);
+  line-height: 1.8;
+}
+
+.teachText {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--green-text);
+  line-height: 1.7;
+}
+
+.noSpeech {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--amber);
+  background: #1a1000;
+  border: 1px solid var(--amber);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .sidebar { width: 150px; min-width: 130px; }
+  .freqDisplay { font-size: 16px; }
+}

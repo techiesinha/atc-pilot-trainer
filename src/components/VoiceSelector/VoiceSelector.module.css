@@ -1,0 +1,79 @@
+.wrap {
+  position: relative;
+}
+
+.genderBtns {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.gBtn {
+  font-size: 14px;
+  color: var(--green-dim);
+  border: var(--border);
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius);
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gBtn:hover  { color: var(--green-bright); border-color: var(--green-bright); }
+.gActive     { color: var(--green-bright); border-color: var(--green-bright); background: var(--bg-raised); }
+
+.voicePickBtn {
+  font-size: 11px;
+  color: var(--green-dim);
+  border: var(--border);
+  width: 20px;
+  height: 26px;
+  border-radius: var(--radius);
+  transition: all 0.15s;
+}
+
+.voicePickBtn:hover { color: var(--green-bright); border-color: var(--green-bright); }
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--bg-panel);
+  border: var(--border-bright);
+  border-radius: var(--radius-lg);
+  padding: 8px;
+  z-index: 100;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.dropLabel {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--green-dim);
+  letter-spacing: 2px;
+  padding: 0 4px 4px;
+  border-bottom: var(--border);
+  margin-bottom: 2px;
+}
+
+.voiceOpt {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--green-text);
+  text-align: left;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  transition: all 0.1s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voiceOpt:hover      { background: var(--bg-raised); color: var(--green-bright); }
+.voiceOptActive      { background: var(--bg-raised); color: var(--green-bright); }

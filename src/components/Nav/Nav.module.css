@@ -1,0 +1,103 @@
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-panel);
+  border-bottom: var(--border-bright);
+  padding: 0 14px;
+  height: 56px;
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.logo {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.logoRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.logoMain {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--green-bright);
+  letter-spacing: 4px;
+}
+
+.logoVersion {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--green-dim);
+  letter-spacing: 1px;
+  padding: 1px 5px;
+  border: 1px solid var(--green-dim);
+  border-radius: 2px;
+  margin-bottom: 1px;
+}
+
+.logoSub {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  color: var(--green-mid);
+  letter-spacing: 3px;
+}
+
+.links {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.link {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--green-mid);
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  border: var(--border);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.link:hover   { color: var(--green-soft); border-color: var(--green-mid); }
+.active       { color: var(--green-bright); border-color: var(--green-bright); background: var(--bg-raised); }
+
+.highlight        { color: var(--amber); border-color: #3a2a08; }
+.highlight:hover  { color: var(--amber) !important; border-color: var(--amber) !important; }
+.highlight.active { color: var(--amber); border-color: var(--amber); background: #160e00; }
+
+.short { display: none; }
+.full  { display: inline; }
+
+@media (max-width: 900px) {
+  .short { display: inline; }
+  .full  { display: none; }
+}
+
+@media (max-width: 600px) {
+  .logo { display: none; }
+  .nav  { padding: 0 8px; }
+}

@@ -1,0 +1,79 @@
+:root {
+  --bg-base:        #080e08;
+  --bg-panel:       #0c140c;
+  --bg-surface:     #101a10;
+  --bg-raised:      #142014;
+
+  --green-dim:      #1a3a1a;
+  --green-mid:      #2d5a2d;
+  --green-bright:   #39ff14;
+  --green-soft:     #7ec87e;
+  --green-text:     #a8d8a8;
+
+  --amber:          #f0a030;
+  --red:            #f85149;
+  --blue:           #58a6ff;
+  --white:          #e8ede8;
+
+  --border:         1px solid #1a3a1a;
+  --border-bright:  1px solid #2d5a2d;
+
+  --font-mono:      'Share Tech Mono', 'Courier New', monospace;
+  --font-ui:        'Barlow', sans-serif;
+  --font-display:   'Barlow Condensed', sans-serif;
+
+  --radius:         4px;
+  --radius-lg:      8px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; }
+
+body {
+  background: var(--bg-base);
+  color: var(--green-text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--green-dim); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--green-mid); }
+
+button { font-family: var(--font-mono); cursor: pointer; border: none; background: none; }
+
+input, textarea {
+  font-family: var(--font-mono);
+  background: var(--bg-surface);
+  border: var(--border);
+  color: var(--green-text);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+}
+
+input:focus, textarea:focus { border-color: var(--green-bright); }
+input::placeholder, textarea::placeholder { color: var(--green-dim); }
+
+select {
+  font-family: var(--font-mono);
+  background: var(--bg-surface);
+  border: var(--border);
+  color: var(--green-text);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+
+select:focus { border-color: var(--green-bright); }
+
+@keyframes blink    { 0%,100% { opacity:1; } 50% { opacity:0; } }
+@keyframes fadeIn   { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pulse    { 0%,100% { box-shadow:0 0 0 0 rgba(57,255,20,.4); } 50% { box-shadow:0 0 0 6px rgba(57,255,20,0); } }
