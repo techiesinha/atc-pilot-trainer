@@ -9,13 +9,18 @@ import { config } from '../config';
 import { t } from '../locales';
 import styles from './FeedbackPage.module.css';
 import { UpiDonation } from '../components/UpiDonation/UpiDonation';
+import { AppUser } from '../types';
 
 type FormState = 'idle' | 'sending' | 'sent' | 'error';
 
-export function FeedbackPage() {
+interface Props {
+  user: AppUser | null;
+}
+
+export function FeedbackPage({ user }: Props) {
   const [type, setType] = useState(t.feedback.types[0]);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [name, setName] = useState(user?.name ?? '');
+  const [email, setEmail] = useState(user?.email ?? '');
   const [pilotLevel, setLevel] = useState(t.registration.pilotLevels[0]);
   const [message, setMessage] = useState('');
   const [formState, setFormState] = useState<FormState>('idle');

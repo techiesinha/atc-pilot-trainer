@@ -64,7 +64,7 @@ export default function App() {
             <Route path="/metar" element={<MetarPage />} />
             <Route path="/phonetic" element={<PhoneticPage />} />
             <Route path="/progress" element={<ProgressPage />} />
-            <Route path="/feedback" element={<FeedbackPage />} />
+            <Route path="/feedback" element={<FeedbackPage user={user} />} />
             <Route path="/legal" element={<LegalPage />} />
           </Routes>
         </div>
