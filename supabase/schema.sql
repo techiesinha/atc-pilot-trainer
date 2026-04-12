@@ -11,38 +11,33 @@
 -- Dev mirrors:
 --   identities_dev, users_dev, events_dev — isolated from production data
 --
--- Run this in: Supabase Dashboard → SQL Editor → New query → Run
+-- FIXES applied:
+--   1. All INSERT statements explicitly pass UUID via gen_random_uuid()
+--      instead of relying on column defaults (stripped by EXCLUDING CONSTRAINTS)
+--   2. All WHERE clauses qualify columns with table name to avoid ambiguity
+--      with PL/pgSQL RETURNS TABLE output variables (identity_id clash)
+--
+-- Run in: Supabase Dashboard → SQL Editor → New query → Run
 -- =============================================================================
 
 
 -- =============================================================================
--- HELPER: drop existing tables if re-running this script
--- Comment these out if you have real production data you want to keep
+-- DROP EXISTING — safe to re-run. Comment out if you have real production data.
 -- =============================================================================
-DROP TABLE IF EXISTS events_dev       CASCADE;
-DROP TABLE IF EXISTS users_dev        CASCADE;
-DROP TABLE IF EXISTS identities_dev   CASCADE;
-DROP TABLE IF EXISTS events           CASCADE;
-DROP TABLE IF EXISTS users            CASCADE;
-DROP TABLE IF EXISTS identities       CASCADE;
+DROP FUNCTION IF EXISTS get_or_create_user_dev CASCADE;
+DROP FUNCTION IF EXISTS get_or_create_user     CASCADE;
+DROP FUNCTION IF EXISTS increment_sessions_dev CASCADE;
+DROP FUNCTION IF EXISTS increment_sessions     CASCADE;
+DROP TABLE IF EXISTS events_dev     CASCADE;
+DROP TABLE IF EXISTS users_dev      CASCADE;
+DROP TABLE IF EXISTS identities_dev CASCADE;
+DROP TABLE IF EXISTS events         CASCADE;
+DROP TABLE IF EXISTS users          CASCADE;
+DROP TABLE IF EXISTS identities     CASCADE;
 
 
 -- =============================================================================
 -- TABLE: identities
--- =============================================================================
--- Owns the email address and authentication method.
--- Email is stored here and ONLY here — never in users, events, or JSON payloads.
--- One row per unique person. Designed to expand for OAuth providers later.
---
--- provider values:
---   'email'   — registered directly with email (current flow)
---   'google'  — signed in via Google OAuth
---   'github'  — signed in via GitHub OAuth
---   'apple'   — signed in via Apple OAuth
---
--- provider_id:
---   null for 'email' registrations
---   the OAuth subject ID (e.g. Google unique user string) for OAuth logins
 -- =============================================================================
 CREATE TABLE identities (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -67,11 +62,6 @@ COMMENT ON COLUMN identities.provider_id    IS 'OAuth subject ID. Null for direc
 -- =============================================================================
 -- TABLE: users
 -- =============================================================================
--- Pilot profile data. References identities.id as the link to authentication.
--- No email stored here. Safe to return in API responses.
---
--- identity_id is UNIQUE — enforces one profile per identity at the DB level.
--- =============================================================================
 CREATE TABLE users (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   identity_id     UUID        NOT NULL UNIQUE REFERENCES identities(id) ON DELETE CASCADE,
@@ -94,19 +84,6 @@ COMMENT ON COLUMN users.sessions      IS 'Incremented on every app open. Minimum
 -- =============================================================================
 -- TABLE: events
 -- =============================================================================
--- Behavioural log. References users.id (not identity_id).
--- CASCADE delete: if a user resets their profile, events are cleaned up.
---
--- event name examples:
---   'scenario_attempted'  — pilot completed a readback attempt
---   'metar_fetched'       — pilot looked up weather
---   'phonetic_drill'      — pilot completed a phonetics drill
---
--- data JSONB examples:
---   scenario_attempted : { scenario_id, category, passed, score, aerodrome }
---   metar_fetched      : { icao, flight_category }
---   phonetic_drill     : { mode, correct, total }
--- =============================================================================
 CREATE TABLE events (
   id          BIGSERIAL   PRIMARY KEY,
   user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -115,8 +92,8 @@ CREATE TABLE events (
   timestamp   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idxEventsUserId   ON events (user_id);
-CREATE INDEX idxEventsEvent    ON events (event);
+CREATE INDEX idxEventsUserId    ON events (user_id);
+CREATE INDEX idxEventsEvent     ON events (event);
 CREATE INDEX idxEventsTimestamp ON events (timestamp DESC);
 
 COMMENT ON TABLE  events          IS 'Behavioural event log. No PII. References users.id only.';
@@ -128,9 +105,6 @@ COMMENT ON COLUMN events.data     IS 'Flexible JSONB payload. Schema varies by e
 -- =============================================================================
 -- FUNCTION: increment_sessions
 -- =============================================================================
--- Atomically increments sessions and updates last_seen for a given user.
--- Called every time the app is opened by a returning user.
--- =============================================================================
 CREATE OR REPLACE FUNCTION increment_sessions(p_user_id UUID)
 RETURNS void
 LANGUAGE sql
@@ -139,7 +113,7 @@ AS $$
   UPDATE users
   SET sessions  = sessions + 1,
       last_seen = now()
-  WHERE id = p_user_id;
+  WHERE users.id = p_user_id;
 $$;
 
 COMMENT ON FUNCTION increment_sessions IS
@@ -147,15 +121,7 @@ COMMENT ON FUNCTION increment_sessions IS
 
 
 -- =============================================================================
--- FUNCTION: get_or_create_user
--- =============================================================================
--- Single entrypoint for registration and login.
--- Looks up identity by email. Creates both identity and profile if new.
--- Returns users.id — the only ID the app needs to store locally.
---
--- Adding OAuth later:
---   Call with provider='google' and provider_id from Google's token.
---   The function links the OAuth identity to the existing profile automatically.
+-- FUNCTION: get_or_create_user (production)
 -- =============================================================================
 CREATE OR REPLACE FUNCTION get_or_create_user(
   p_email       TEXT,
@@ -178,44 +144,42 @@ DECLARE
   v_user_id     UUID;
   v_is_new      BOOLEAN := false;
 BEGIN
-  -- Try to find existing identity by email
-  SELECT id INTO v_identity_id
+  SELECT identities.id INTO v_identity_id
   FROM identities
-  WHERE email = lower(trim(p_email));
+  WHERE identities.email = lower(trim(p_email));
 
   IF v_identity_id IS NULL THEN
-    -- New user — create identity row
-    INSERT INTO identities (email, provider, provider_id, email_verified)
+    v_identity_id := gen_random_uuid();
+
+    INSERT INTO identities (id, email, provider, provider_id, email_verified)
     VALUES (
+      v_identity_id,
       lower(trim(p_email)),
       p_provider,
       p_provider_id,
       CASE WHEN p_provider != 'email' THEN true ELSE false END
-    )
-    RETURNING id INTO v_identity_id;
+    );
 
-    -- Create profile row
-    INSERT INTO users (identity_id, name, country, pilot_level)
-    VALUES (v_identity_id, p_name, p_country, p_pilot_level)
-    RETURNING id INTO v_user_id;
+    v_user_id := gen_random_uuid();
+
+    INSERT INTO users (id, identity_id, name, country, pilot_level)
+    VALUES (v_user_id, v_identity_id, p_name, p_country, p_pilot_level);
 
     v_is_new := true;
 
   ELSE
-    -- Returning user — get profile and update activity
-    SELECT id INTO v_user_id
+    SELECT users.id INTO v_user_id
     FROM users
-    WHERE identity_id = v_identity_id;
+    WHERE users.identity_id = v_identity_id;
 
     PERFORM increment_sessions(v_user_id);
 
-    -- If they are now using OAuth (upgrade from email), update provider details
     IF p_provider != 'email' THEN
       UPDATE identities
       SET provider    = p_provider,
           provider_id = COALESCE(p_provider_id, provider_id),
           updated_at  = now()
-      WHERE id = v_identity_id;
+      WHERE identities.id = v_identity_id;
     END IF;
   END IF;
 
@@ -228,10 +192,7 @@ COMMENT ON FUNCTION get_or_create_user IS
 
 
 -- =============================================================================
--- ROW LEVEL SECURITY
--- =============================================================================
--- The anon key (used by the browser app) can INSERT only.
--- Reading all rows requires the service role (Supabase dashboard).
+-- ROW LEVEL SECURITY — production tables
 -- =============================================================================
 ALTER TABLE identities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users      ENABLE ROW LEVEL SECURITY;
@@ -253,14 +214,41 @@ CREATE POLICY "anon_insert_event"
 -- =============================================================================
 -- DEV MIRROR TABLES
 -- =============================================================================
--- npm run dev writes to these. npm run build writes to production tables.
--- Keeps test registrations out of your real user count.
--- =============================================================================
-CREATE TABLE identities_dev (LIKE identities INCLUDING ALL);
+CREATE TABLE identities_dev (LIKE identities EXCLUDING CONSTRAINTS);
 CREATE TABLE users_dev      (LIKE users      EXCLUDING CONSTRAINTS);
 CREATE TABLE events_dev     (LIKE events     EXCLUDING CONSTRAINTS);
 
--- Restore FKs pointing to dev tables (not production tables)
+-- Restore primary keys
+ALTER TABLE identities_dev ADD PRIMARY KEY (id);
+ALTER TABLE users_dev      ADD PRIMARY KEY (id);
+
+-- Restore UUID defaults
+ALTER TABLE identities_dev ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE users_dev      ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
+-- Restore UNIQUE constraint on email
+ALTER TABLE identities_dev
+  ADD CONSTRAINT identities_dev_email_unique UNIQUE (email);
+
+-- Restore provider CHECK constraint
+ALTER TABLE identities_dev
+  ADD CONSTRAINT identities_dev_provider_check
+  CHECK (provider IN ('email', 'google', 'github', 'apple'));
+
+-- Restore column defaults on identities_dev
+ALTER TABLE identities_dev ALTER COLUMN email_verified SET DEFAULT false;
+ALTER TABLE identities_dev ALTER COLUMN provider       SET DEFAULT 'email';
+ALTER TABLE identities_dev ALTER COLUMN created_at     SET DEFAULT now();
+ALTER TABLE identities_dev ALTER COLUMN updated_at     SET DEFAULT now();
+
+-- Restore column defaults on users_dev
+ALTER TABLE users_dev ALTER COLUMN country       SET DEFAULT 'India';
+ALTER TABLE users_dev ALTER COLUMN pilot_level   SET DEFAULT 'Student pilot';
+ALTER TABLE users_dev ALTER COLUMN registered_at SET DEFAULT now();
+ALTER TABLE users_dev ALTER COLUMN last_seen     SET DEFAULT now();
+ALTER TABLE users_dev ALTER COLUMN sessions      SET DEFAULT 1;
+
+-- Restore FK: users_dev.identity_id → identities_dev.id
 ALTER TABLE users_dev
   ADD CONSTRAINT users_dev_identity_id_fkey
   FOREIGN KEY (identity_id) REFERENCES identities_dev(id) ON DELETE CASCADE;
@@ -268,6 +256,7 @@ ALTER TABLE users_dev
 ALTER TABLE users_dev
   ADD CONSTRAINT users_dev_identity_id_unique UNIQUE (identity_id);
 
+-- Restore FK: events_dev.user_id → users_dev.id
 ALTER TABLE events_dev
   ADD CONSTRAINT events_dev_user_id_fkey
   FOREIGN KEY (user_id) REFERENCES users_dev(id) ON DELETE CASCADE;
@@ -294,7 +283,10 @@ CREATE POLICY "anon_update_user_dev"
 CREATE POLICY "anon_insert_event_dev"
   ON events_dev FOR INSERT TO anon WITH CHECK (true);
 
--- Dev mirror of functions
+
+-- =============================================================================
+-- FUNCTION: increment_sessions_dev
+-- =============================================================================
 CREATE OR REPLACE FUNCTION increment_sessions_dev(p_user_id UUID)
 RETURNS void
 LANGUAGE sql
@@ -303,9 +295,13 @@ AS $$
   UPDATE users_dev
   SET sessions  = sessions + 1,
       last_seen = now()
-  WHERE id = p_user_id;
+  WHERE users_dev.id = p_user_id;
 $$;
 
+
+-- =============================================================================
+-- FUNCTION: get_or_create_user_dev
+-- =============================================================================
 CREATE OR REPLACE FUNCTION get_or_create_user_dev(
   p_email       TEXT,
   p_name        TEXT,
@@ -327,29 +323,33 @@ DECLARE
   v_user_id     UUID;
   v_is_new      BOOLEAN := false;
 BEGIN
-  SELECT id INTO v_identity_id
+  SELECT identities_dev.id INTO v_identity_id
   FROM identities_dev
-  WHERE email = lower(trim(p_email));
+  WHERE identities_dev.email = lower(trim(p_email));
 
   IF v_identity_id IS NULL THEN
-    INSERT INTO identities_dev (email, provider, provider_id, email_verified)
+    v_identity_id := gen_random_uuid();
+
+    INSERT INTO identities_dev (id, email, provider, provider_id, email_verified)
     VALUES (
+      v_identity_id,
       lower(trim(p_email)),
       p_provider,
       p_provider_id,
       CASE WHEN p_provider != 'email' THEN true ELSE false END
-    )
-    RETURNING id INTO v_identity_id;
+    );
 
-    INSERT INTO users_dev (identity_id, name, country, pilot_level)
-    VALUES (v_identity_id, p_name, p_country, p_pilot_level)
-    RETURNING id INTO v_user_id;
+    v_user_id := gen_random_uuid();
+
+    INSERT INTO users_dev (id, identity_id, name, country, pilot_level)
+    VALUES (v_user_id, v_identity_id, p_name, p_country, p_pilot_level);
 
     v_is_new := true;
+
   ELSE
-    SELECT id INTO v_user_id
+    SELECT users_dev.id INTO v_user_id
     FROM users_dev
-    WHERE identity_id = v_identity_id;
+    WHERE users_dev.identity_id = v_identity_id;
 
     PERFORM increment_sessions_dev(v_user_id);
 
@@ -358,7 +358,7 @@ BEGIN
       SET provider    = p_provider,
           provider_id = COALESCE(p_provider_id, provider_id),
           updated_at  = now()
-      WHERE id = v_identity_id;
+      WHERE identities_dev.id = v_identity_id;
     END IF;
   END IF;
 
@@ -366,11 +366,27 @@ BEGIN
 END;
 $$;
 
+COMMENT ON FUNCTION get_or_create_user_dev IS
+  'Dev mirror of get_or_create_user. Writes to identities_dev and users_dev.';
+
 
 -- =============================================================================
--- DEVELOPER QUERIES
+-- VERIFY — uncomment and run this after schema to confirm function works
 -- =============================================================================
--- Paste any of these into Supabase SQL Editor whenever you need them.
+-- SELECT * FROM get_or_create_user_dev(
+--   'test@example.com',
+--   'Test User',
+--   'India',
+--   'Student pilot (PPL training)',
+--   'google',
+--   'test-verify-001'
+-- );
+-- Expected: one row — user_id UUID, identity_id UUID, is_new_user = true
+
+
+-- =============================================================================
+-- DEVELOPER QUERIES — paste into SQL Editor whenever needed
+-- =============================================================================
 
 -- Total users
 -- SELECT COUNT(*) FROM users;
@@ -390,11 +406,11 @@ $$;
 -- Active users (seen in last 7 days)
 -- SELECT COUNT(*) FROM users WHERE last_seen > now() - interval '7 days';
 
--- Most practised scenarios (all time)
--- SELECT data->>'scenario_id'                                     AS scenario,
---        COUNT(*)                                                  AS attempts,
---        COUNT(*) FILTER (WHERE (data->>'passed')::boolean)       AS passed,
---        ROUND(AVG((data->>'score')::numeric), 1)                 AS avg_score
+-- Most practised scenarios
+-- SELECT data->>'scenario_id'                                AS scenario,
+--        COUNT(*)                                            AS attempts,
+--        COUNT(*) FILTER (WHERE (data->>'passed')::boolean) AS passed,
+--        ROUND(AVG((data->>'score')::numeric), 1)           AS avg_score
 -- FROM events
 -- WHERE event = 'scenario_attempted'
 -- GROUP BY scenario
