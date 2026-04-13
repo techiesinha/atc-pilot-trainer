@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 
 declare global {
   interface SpeechRecognitionEvent extends Event {
@@ -43,15 +43,19 @@ declare global {
   }
 }
 
+const RECOGNITION_LANGUAGE = 'en-GB';
+const MAX_ALTERNATIVES = 1;
+const ABORTED_ERROR_CODE = 'aborted';
+
 interface UseSpeechRecognitionResult {
   isSupported: boolean;
   start: (onResult: (transcript: string) => void) => void;
   stop: () => void;
 }
 
-export function useSpeechRecognition(): UseSpeechRecognitionResult {
+export const useSpeechRecognition = (): UseSpeechRecognitionResult => {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const onResultRef = useRef<((t: string) => void) | null>(null);
+  const onResultRef = useRef<((transcript: string) => void) | null>(null);
 
   const isSupported =
     typeof window !== 'undefined' &&
@@ -60,41 +64,53 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
   const start = useCallback((onResult: (transcript: string) => void) => {
     if (!isSupported) return;
 
-    const SR: new () => SpeechRecognition =
+    const SpeechRecognitionConstructor: new () => SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    const recognition = new SR();
+    const recognition = new SpeechRecognitionConstructor();
     onResultRef.current = onResult;
     recognitionRef.current = recognition;
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = 'en-GB';
-    recognition.maxAlternatives = 1;
+    recognition.lang = RECOGNITION_LANGUAGE;
+    recognition.maxAlternatives = MAX_ALTERNATIVES;
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let full = '';
-      for (let i = 0; i < event.results.length; i++) {
-        full += event.results[i][0].transcript;
+      let fullTranscript = '';
+      for (let resultIndex = 0; resultIndex < event.results.length; resultIndex++) {
+        fullTranscript += event.results[resultIndex][0].transcript;
       }
-      onResultRef.current?.(full);
+      onResultRef.current?.(fullTranscript);
     };
 
-    recognition.onerror = (e: Event) => {
-      const err = (e as Event & { error: string }).error;
-      if (err !== 'aborted') console.warn('STT error:', err);
+    recognition.onerror = (event: Event) => {
+      const errorCode = (event as Event & { error: string }).error;
+      if (errorCode !== ABORTED_ERROR_CODE) {
+        console.warn('Speech recognition error:', errorCode);
+      }
     };
 
-    recognition.onend = () => { recognitionRef.current = null; };
+    recognition.onend = () => {
+      recognitionRef.current = null;
+    };
 
-    try { recognition.start(); } catch { /* already started */ }
+    try {
+      recognition.start();
+    } catch {
+      /* recognition already started — ignore */
+    }
   }, [isSupported]);
 
   const stop = useCallback(() => {
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch { /* already stopped */ }
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        /* recognition already stopped — ignore */
+      }
       recognitionRef.current = null;
     }
   }, []);
 
   return { isSupported, start, stop };
-}
+};

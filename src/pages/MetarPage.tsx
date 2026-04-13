@@ -1,5 +1,5 @@
 /**
- * © 2025 - 2026 Abhishek Sinha. All rights reserved.
+ * © 2025-2026 Abhishek Sinha. All rights reserved.
  * ATC Pilot Trainer — For training purposes only.
  * Unauthorised copying or reproduction without prior written permission is prohibited.
  */

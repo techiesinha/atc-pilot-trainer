@@ -1,20 +1,37 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
-export function useLocalStorage<T>(key: string, initialValue: T) {
-  const [storedValue, setStoredValue] = useState<T>(() => {
+export const useLocalStorage = <StoredValue>(
+  storageKey: string,
+  initialValue: StoredValue
+) => {
+  const [storedValue, setStoredValue] = useState<StoredValue>(() => {
     try {
-      const item = window.localStorage.getItem(key);
-      return item ? (JSON.parse(item) as T) : initialValue;
-    } catch { return initialValue; }
+      const existingItem = window.localStorage.getItem(storageKey);
+      return existingItem
+        ? (JSON.parse(existingItem) as StoredValue)
+        : initialValue;
+    } catch {
+      return initialValue;
+    }
   });
 
-  const setValue = useCallback((value: T | ((prev: T) => T)) => {
-    setStoredValue((prev) => {
-      const next = typeof value === 'function' ? (value as (p: T) => T)(prev) : value;
-      try { window.localStorage.setItem(key, JSON.stringify(next)); } catch { /* quota */ }
-      return next;
-    });
-  }, [key]);
+  const setValue = useCallback(
+    (value: StoredValue | ((previousValue: StoredValue) => StoredValue)) => {
+      setStoredValue((previousValue) => {
+        const nextValue =
+          typeof value === 'function'
+            ? (value as (previous: StoredValue) => StoredValue)(previousValue)
+            : value;
+        try {
+          window.localStorage.setItem(storageKey, JSON.stringify(nextValue));
+        } catch {
+          /* storage quota exceeded — ignore silently */
+        }
+        return nextValue;
+      });
+    },
+    [storageKey]
+  );
 
   return [storedValue, setValue] as const;
-}
+};

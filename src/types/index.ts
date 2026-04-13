@@ -115,7 +115,12 @@ export interface AppUser {
   isNewUser: boolean;
 }
 
+export enum VoiceGender {
+  Male = 'male',
+  Female = 'female',
+}
+
 export interface VoicePreference {
-  gender: 'male' | 'female';
+  gender: VoiceGender;
   voiceName: string | null;
 }

@@ -1,48 +1,64 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export interface ClockState {
   localTime: string;
-  utcTime:   string;
-  utcDate:   string;
+  utcTime: string;
+  utcDate: string;
 }
 
-function formatClock(d: Date): ClockState {
-  const pad = (n: number) => String(n).padStart(2, '0');
+const MONTH_ABBREVIATIONS = [
+  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+] as const;
 
-  const lh = pad(d.getHours());
-  const lm = pad(d.getMinutes());
-  const ls = pad(d.getSeconds());
+const TICK_INTERVAL_MS = 1000;
+const PAD_LENGTH = 2;
+const PAD_CHARACTER = '0';
 
-  const uh = pad(d.getUTCHours());
-  const um = pad(d.getUTCMinutes());
-  const us = pad(d.getUTCSeconds());
+const padTimeUnit = (timeUnit: number): string =>
+  String(timeUnit).padStart(PAD_LENGTH, PAD_CHARACTER);
 
-  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-  const dateStr = `${pad(d.getUTCDate())} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+const formatClock = (date: Date): ClockState => {
+  const localHours = padTimeUnit(date.getHours());
+  const localMinutes = padTimeUnit(date.getMinutes());
+  const localSeconds = padTimeUnit(date.getSeconds());
+
+  const utcHours = padTimeUnit(date.getUTCHours());
+  const utcMinutes = padTimeUnit(date.getUTCMinutes());
+  const utcSeconds = padTimeUnit(date.getUTCSeconds());
+
+  const utcDay = padTimeUnit(date.getUTCDate());
+  const utcMonth = MONTH_ABBREVIATIONS[date.getUTCMonth()];
+  const utcYear = date.getUTCFullYear();
 
   return {
-    localTime: `${lh}:${lm}:${ls}`,
-    utcTime:   `${uh}:${um}:${us}Z`,
-    utcDate:   dateStr,
+    localTime: `${localHours}:${localMinutes}:${localSeconds}`,
+    utcTime: `${utcHours}:${utcMinutes}:${utcSeconds}Z`,
+    utcDate: `${utcDay} ${utcMonth} ${utcYear}`,
   };
-}
+};
 
-export function useClock(): ClockState {
+export const useClock = (): ClockState => {
   const [clock, setClock] = useState<ClockState>(() => formatClock(new Date()));
 
   useEffect(() => {
-    // Align to the next whole second boundary first
-    const now     = Date.now();
-    const offset  = 1000 - (now % 1000);
-    let interval: ReturnType<typeof setInterval>;
+    const now = Date.now();
+    const msUntilNextTick = TICK_INTERVAL_MS - (now % TICK_INTERVAL_MS);
+    let tickInterval: ReturnType<typeof setInterval>;
 
-    const timeout = setTimeout(() => {
+    const alignmentTimeout = setTimeout(() => {
       setClock(formatClock(new Date()));
-      interval = setInterval(() => setClock(formatClock(new Date())), 1000);
-    }, offset);
+      tickInterval = setInterval(
+        () => setClock(formatClock(new Date())),
+        TICK_INTERVAL_MS
+      );
+    }, msUntilNextTick);
 
-    return () => { clearTimeout(timeout); clearInterval(interval); };
+    return () => {
+      clearTimeout(alignmentTimeout);
+      clearInterval(tickInterval);
+    };
   }, []);
 
   return clock;
-}
+};

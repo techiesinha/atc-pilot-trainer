@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { t } from '../../locales';
-import { VoicePreference } from '../../types';
+import { VoiceGender, VoicePreference } from '../../types';
 import styles from './VoiceSelector.module.css';
 
 interface Props {
@@ -11,8 +11,8 @@ interface Props {
 }
 
 export function VoiceSelector({ voicePref, availableVoices, onGenderChange, onVoiceChange }: Props) {
-  const [open, setOpen]   = useState(false);
-  const wrapRef           = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const pool = voicePref.gender === 'male' ? availableVoices.male : availableVoices.female;
 
   // Close dropdown when clicking outside
@@ -32,14 +32,14 @@ export function VoiceSelector({ voicePref, availableVoices, onGenderChange, onVo
       <div className={styles.genderBtns}>
         <button
           className={`${styles.gBtn} ${voicePref.gender === 'male' ? styles.gActive : ''}`}
-          onClick={() => onGenderChange('male')}
+          onClick={() => onGenderChange(VoiceGender.Male)}
           title={t.voice.maleTitle}
         >
           {t.voice.male}
         </button>
         <button
           className={`${styles.gBtn} ${voicePref.gender === 'female' ? styles.gActive : ''}`}
-          onClick={() => onGenderChange('female')}
+          onClick={() => onGenderChange(VoiceGender.Female)}
           title={t.voice.femaleTitle}
         >
           {t.voice.female}

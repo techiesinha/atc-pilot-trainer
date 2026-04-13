@@ -1,23 +1,22 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { randomCallsign } from '../data/callsigns';
 
-const KEY = 'atcCallsign';
+const CALLSIGN_STORAGE_KEY = 'atcCallsign';
 
-export function useCallsign() {
+export const useCallsign = () => {
   const [callsign, setCallsign] = useState<string>(() => {
-    return localStorage.getItem(KEY) ?? randomCallsign();
+    return localStorage.getItem(CALLSIGN_STORAGE_KEY) ?? randomCallsign();
   });
 
   const reroll = useCallback(() => {
-    const next = randomCallsign();
-    localStorage.setItem(KEY, next);
-    setCallsign(next);
+    const nextCallsign = randomCallsign();
+    localStorage.setItem(CALLSIGN_STORAGE_KEY, nextCallsign);
+    setCallsign(nextCallsign);
   }, []);
 
-  // Persist on first load
-  if (!localStorage.getItem(KEY)) {
-    localStorage.setItem(KEY, callsign);
+  if (!localStorage.getItem(CALLSIGN_STORAGE_KEY)) {
+    localStorage.setItem(CALLSIGN_STORAGE_KEY, callsign);
   }
 
   return { callsign, reroll };
-}
+};

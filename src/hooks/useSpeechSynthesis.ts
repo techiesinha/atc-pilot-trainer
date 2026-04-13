@@ -1,115 +1,149 @@
 import { useCallback, useEffect, useState } from 'react';
-import { VoicePreference } from '../types';
+import { VoiceGender, VoicePreference } from '../types';
 
-const VOICE_PREF_KEY = 'atcVoicePref';
+const VOICE_PREFERENCE_STORAGE_KEY = 'atcVoicePref';
+const PREFERRED_LANGUAGE = 'en-GB';
+const FALLBACK_LANGUAGE_PREFIX = 'en';
+const SPEECH_RATE_NORMAL = 0.85;
+const SPEECH_VOLUME_FULL = 1.0;
+const PITCH_DESKTOP_MALE = 0.88;
+const PITCH_DESKTOP_FEMALE = 1.1;
+const PITCH_MOBILE_MALE = 0.6;
+const PITCH_MOBILE_FEMALE = 1.2;
+const MOBILE_USER_AGENT_PATTERN = /android|iphone|ipad|ipod|mobile/i;
 
-function loadPref(): VoicePreference {
+const FEMALE_VOICE_HINTS = [
+  'female', 'woman', 'girl', 'zira', 'hazel', 'susan',
+  'victoria', 'karen', 'samantha', 'fiona', 'moira',
+  'tessa', 'veena', 'raveena',
+] as const;
+
+const MALE_VOICE_HINTS = [
+  'male', 'man', 'guy', 'david', 'george', 'daniel',
+  'james', 'alex', 'fred', 'thomas', 'rishi',
+] as const;
+
+const DEFAULT_VOICE_PREFERENCE: VoicePreference = {
+  gender: VoiceGender.Male,
+  voiceName: null,
+};
+
+const loadVoicePreference = (): VoicePreference => {
   try {
-    const s = localStorage.getItem(VOICE_PREF_KEY);
-    if (s) return JSON.parse(s) as VoicePreference;
-  } catch { /* ignore */ }
-  return { gender: 'male', voiceName: null };
-}
+    const stored = localStorage.getItem(VOICE_PREFERENCE_STORAGE_KEY);
+    if (stored) return JSON.parse(stored) as VoicePreference;
+  } catch {
+    /* parse error — use default */
+  }
+  return DEFAULT_VOICE_PREFERENCE;
+};
 
-function savePref(pref: VoicePreference) {
-  localStorage.setItem(VOICE_PREF_KEY, JSON.stringify(pref));
-}
+const saveVoicePreference = (preference: VoicePreference): void => {
+  localStorage.setItem(VOICE_PREFERENCE_STORAGE_KEY, JSON.stringify(preference));
+};
 
-function isMobile(): boolean {
-  return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
-}
+const isMobileDevice = (): boolean =>
+  MOBILE_USER_AGENT_PATTERN.test(navigator.userAgent);
 
-function classifyVoice(v: SpeechSynthesisVoice): 'male' | 'female' {
-  const n = v.name.toLowerCase();
-  const femaleHints = ['female', 'woman', 'girl', 'zira', 'hazel', 'susan', 'victoria', 'karen', 'samantha', 'fiona', 'moira', 'tessa', 'veena', 'raveena'];
-  const maleHints = ['male', 'man', 'guy', 'david', 'george', 'daniel', 'james', 'alex', 'fred', 'thomas', 'rishi'];
-  if (femaleHints.some((h) => n.includes(h))) return 'female';
-  if (maleHints.some((h) => n.includes(h))) return 'male';
-  return 'male';
-}
+const classifyVoiceGender = (voice: SpeechSynthesisVoice): VoiceGender => {
+  const voiceNameLower = voice.name.toLowerCase();
+  if (FEMALE_VOICE_HINTS.some((hint) => voiceNameLower.includes(hint))) return VoiceGender.Female;
+  if (MALE_VOICE_HINTS.some((hint) => voiceNameLower.includes(hint))) return VoiceGender.Male;
+  return VoiceGender.Male;
+};
 
 export interface UseSpeechSynthesisResult {
   speak: (text: string, onStart?: () => void, onEnd?: () => void) => void;
   cancel: () => void;
   voicePref: VoicePreference;
   availableVoices: { male: SpeechSynthesisVoice[]; female: SpeechSynthesisVoice[] };
-  setVoiceGender: (gender: 'male' | 'female') => void;
+  setVoiceGender: (gender: VoiceGender) => void;
   setVoiceName: (name: string) => void;
 }
 
-export function useSpeechSynthesis(): UseSpeechSynthesisResult {
-  const [voicePref, setVoicePref] = useState<VoicePreference>(loadPref);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+export const useSpeechSynthesis = (): UseSpeechSynthesisResult => {
+  const [voicePreference, setVoicePreference] = useState<VoicePreference>(loadVoicePreference);
+  const [availableVoiceList, setAvailableVoiceList] = useState<SpeechSynthesisVoice[]>([]);
 
   useEffect(() => {
-    const load = () => {
-      const all = window.speechSynthesis.getVoices().filter((v) => v.lang.startsWith('en'));
-      setVoices(all);
+    const loadVoices = () => {
+      const englishVoices = window.speechSynthesis
+        .getVoices()
+        .filter((voice) => voice.lang.startsWith(FALLBACK_LANGUAGE_PREFIX));
+      setAvailableVoiceList(englishVoices);
     };
-    load();
-    window.speechSynthesis.onvoiceschanged = load;
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
     return () => { window.speechSynthesis.onvoiceschanged = null; };
   }, []);
 
   const availableVoices = {
-    male: voices.filter((v) => classifyVoice(v) === 'male'),
-    female: voices.filter((v) => classifyVoice(v) === 'female'),
+    male: availableVoiceList.filter((voice) => classifyVoiceGender(voice) === VoiceGender.Male),
+    female: availableVoiceList.filter((voice) => classifyVoiceGender(voice) === VoiceGender.Female),
   };
 
   const getBestVoice = useCallback((): SpeechSynthesisVoice | null => {
-    const pool = voicePref.gender === 'male' ? availableVoices.male : availableVoices.female;
-    if (voicePref.voiceName) {
-      const named = pool.find((v) => v.name === voicePref.voiceName);
-      if (named) return named;
+    const voicePool = voicePreference.gender === VoiceGender.Male
+      ? availableVoices.male
+      : availableVoices.female;
+
+    if (voicePreference.voiceName) {
+      const namedVoice = voicePool.find((voice) => voice.name === voicePreference.voiceName);
+      if (namedVoice) return namedVoice;
     }
-    return pool.find((v) => v.lang === 'en-GB')
-      ?? pool.find((v) => v.lang.startsWith('en'))
+
+    return voicePool.find((voice) => voice.lang === PREFERRED_LANGUAGE)
+      ?? voicePool.find((voice) => voice.lang.startsWith(FALLBACK_LANGUAGE_PREFIX))
       ?? null;
-  }, [voicePref, availableVoices.male, availableVoices.female]);
+  }, [voicePreference, availableVoices.male, availableVoices.female]);
 
-  const speak = useCallback((text: string, onStart?: () => void, onEnd?: () => void) => {
+  const speak = useCallback((
+    text: string,
+    onStart?: () => void,
+    onEnd?: () => void,
+  ) => {
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const mobile = isMobile();
-    const isMale = voicePref.gender === 'male';
 
-    u.rate = 0.85;
-    u.volume = 1.0;
+    const utterance = new SpeechSynthesisUtterance(text);
+    const onMobile = isMobileDevice();
+    const isMaleVoice = voicePreference.gender === VoiceGender.Male;
 
-    if (mobile) {
-      // On mobile, voice switching via Web Speech API is unreliable.
-      // Android Chrome ignores the selected voice and uses the system default.
-      // Compensate with pitch — lower for male, higher for female.
-      u.pitch = isMale ? 0.6 : 1.2;
-      // Still attempt voice selection in case the device supports it
-      const voice = getBestVoice();
-      if (voice) u.voice = voice;
-    } else {
-      // Desktop — full voice selection works reliably
-      u.pitch = isMale ? 0.88 : 1.1;
-      const voice = getBestVoice();
-      if (voice) u.voice = voice;
-    }
+    utterance.rate = SPEECH_RATE_NORMAL;
+    utterance.volume = SPEECH_VOLUME_FULL;
+    utterance.pitch = onMobile
+      ? (isMaleVoice ? PITCH_MOBILE_MALE : PITCH_MOBILE_FEMALE)
+      : (isMaleVoice ? PITCH_DESKTOP_MALE : PITCH_DESKTOP_FEMALE);
 
-    u.onstart = () => onStart?.();
-    u.onend = () => onEnd?.();
-    u.onerror = () => onEnd?.();
-    window.speechSynthesis.speak(u);
-  }, [getBestVoice, voicePref.gender]);
+    const selectedVoice = getBestVoice();
+    if (selectedVoice) utterance.voice = selectedVoice;
+
+    utterance.onstart = () => onStart?.();
+    utterance.onend = () => onEnd?.();
+    utterance.onerror = () => onEnd?.();
+
+    window.speechSynthesis.speak(utterance);
+  }, [getBestVoice, voicePreference.gender]);
 
   const cancel = useCallback(() => window.speechSynthesis.cancel(), []);
 
-  const setVoiceGender = useCallback((gender: 'male' | 'female') => {
-    const pref: VoicePreference = { gender, voiceName: null };
-    savePref(pref);
-    setVoicePref(pref);
+  const setVoiceGender = useCallback((gender: VoiceGender) => {
+    const updatedPreference: VoicePreference = { gender, voiceName: null };
+    saveVoicePreference(updatedPreference);
+    setVoicePreference(updatedPreference);
   }, []);
 
   const setVoiceName = useCallback((voiceName: string) => {
-    const pref: VoicePreference = { ...voicePref, voiceName };
-    savePref(pref);
-    setVoicePref(pref);
-  }, [voicePref]);
+    const updatedPreference: VoicePreference = { ...voicePreference, voiceName };
+    saveVoicePreference(updatedPreference);
+    setVoicePreference(updatedPreference);
+  }, [voicePreference]);
 
-  return { speak, cancel, voicePref, availableVoices, setVoiceGender, setVoiceName };
-}
+  return {
+    speak,
+    cancel,
+    voicePref: voicePreference,
+    availableVoices,
+    setVoiceGender,
+    setVoiceName,
+  };
+};
