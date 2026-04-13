@@ -11,10 +11,6 @@
   overflow-x: hidden;
 }
 
-/* The simulator page itself controls its own overflow, so the content wrapper
-   needs to not clip it. For pages like METAR, Phonetic, Progress, Feedback —
-   they are block-level and scroll naturally inside this container. */
-
 .splash {
   height: 100vh;
   display: flex;
@@ -39,4 +35,17 @@
   font-size: 12px;
   color: var(--green-mid);
   letter-spacing: 6px;
+}
+
+@media (max-width: 640px) {
+  .shell {
+    height: 100%;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .content {
+    overflow: visible;
+    flex: none;
+  }
 }

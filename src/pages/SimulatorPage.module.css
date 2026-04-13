@@ -44,8 +44,14 @@
   gap: 1px;
 }
 
-.catBtn:hover { border-color: var(--cat, var(--green-bright)); }
-.catActive    { border-color: var(--cat, var(--green-bright)); background: var(--bg-raised); }
+.catBtn:hover {
+  border-color: var(--cat, var(--green-bright));
+}
+
+.catActive {
+  border-color: var(--cat, var(--green-bright));
+  background: var(--bg-raised);
+}
 
 .catLabel {
   font-family: var(--font-mono);
@@ -81,8 +87,15 @@
   transition: all 0.15s;
 }
 
-.scenBtn:hover { border-color: var(--green-mid); background: var(--bg-surface); }
-.scenActive    { border-color: var(--green-bright); background: var(--bg-raised); }
+.scenBtn:hover {
+  border-color: var(--green-mid);
+  background: var(--bg-surface);
+}
+
+.scenActive {
+  border-color: var(--green-bright);
+  background: var(--bg-raised);
+}
 
 .scenLabel {
   font-family: var(--font-ui);
@@ -100,18 +113,22 @@
   align-self: flex-start;
 }
 
-.basic        { background: #0a1f0a; color: var(--green-bright); }
-.intermediate { background: #1f1500; color: var(--amber); }
-.advanced     { background: #1f0808; color: var(--red); }
+.basic {
+  background: #0a1f0a;
+  color: var(--green-bright);
+}
+
+.intermediate {
+  background: #1f1500;
+  color: var(--amber);
+}
+
+.advanced {
+  background: #1f0808;
+  color: var(--red);
+}
 
 /* ── MAIN PANEL ──────────────────────────────────────────────────────────── */
-/*
- * FIX FOR CLIPPED FEEDBACK:
- * The main panel is a scrollable column.
- * The transcript has a flex:1 min-height so it always shows something,
- * but the overall column overflows and the user can scroll down to see
- * the full feedback panel — which has NO max-height restriction.
- */
 .main {
   flex: 1;
   display: flex;
@@ -210,14 +227,34 @@
   line-height: 1.6;
 }
 
-.atc  .src  { color: var(--blue); }
-.atc  .entryText { color: #85b7eb; }
-.pilot .src  { color: var(--green-bright); }
-.pilot .entryText { color: var(--green-bright); }
-.system .src  { color: var(--green-mid); }
-.system .entryText { color: var(--green-mid); font-style: italic; }
+.atc .src {
+  color: var(--blue);
+}
 
-.cursor { animation: blink 0.7s infinite; }
+.atc .entryText {
+  color: #85b7eb;
+}
+
+.pilot .src {
+  color: var(--green-bright);
+}
+
+.pilot .entryText {
+  color: var(--green-bright);
+}
+
+.system .src {
+  color: var(--green-mid);
+}
+
+.system .entryText {
+  color: var(--green-mid);
+  font-style: italic;
+}
+
+.cursor {
+  animation: blink 0.7s infinite;
+}
 
 /* ── WAVEFORM ────────────────────────────────────────────────────────────── */
 .waveform {
@@ -234,8 +271,16 @@
   overflow: hidden;
 }
 
-.waveBar        { width: 3px; background: var(--green-dim); border-radius: 2px; transition: height 0.05s ease; }
-.waveBarActive  { background: var(--green-bright); }
+.waveBar {
+  width: 3px;
+  background: var(--green-dim);
+  border-radius: 2px;
+  transition: height 0.05s ease;
+}
+
+.waveBarActive {
+  background: var(--green-bright);
+}
 
 /* ── CONTROLS ────────────────────────────────────────────────────────────── */
 .controls {
@@ -256,8 +301,15 @@
   flex-shrink: 0;
 }
 
-.replayBtn:hover:not(:disabled) { color: var(--green-bright); border-color: var(--green-bright); }
-.replayBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+.replayBtn:hover:not(:disabled) {
+  color: var(--green-bright);
+  border-color: var(--green-bright);
+}
+
+.replayBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
 
 .pttBtn {
   flex: 1;
@@ -272,16 +324,21 @@
   user-select: none;
 }
 
-.pttBtn:not(:disabled):hover { background: var(--bg-raised); }
-.pttBtn:disabled { opacity: 0.3; cursor: not-allowed; }
-.pttActive { background: var(--green-dim); animation: pulse 1s infinite; }
+.pttBtn:not(:disabled):hover {
+  background: var(--bg-raised);
+}
+
+.pttBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.pttActive {
+  background: var(--green-dim);
+  animation: pulse 1s infinite;
+}
 
 /* ── FEEDBACK PANEL ──────────────────────────────────────────────────────── */
-/*
- * KEY FIX: No max-height here. The panel grows to its natural size.
- * The parent .main is overflow-y: auto so the user scrolls down to see all of it.
- * This permanently fixes the bottom-clipping issue.
- */
 .feedbackPanel {
   background: var(--bg-panel);
   border: var(--border-bright);
@@ -328,14 +385,36 @@
   line-height: 1.5;
 }
 
-.checkIcon  { min-width: 14px; font-size: 12px; flex-shrink: 0; }
-.checkLabel { color: inherit; }
-.checkDetail { font-size: 10px; margin-top: 2px; color: #5a6a5a; }
-.checkOk    { color: var(--green-bright); }
-.checkWarn  { color: var(--amber); }
-.checkFail  { color: var(--red); }
+.checkIcon {
+  min-width: 14px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
 
-.refBox, .teachBox {
+.checkLabel {
+  color: inherit;
+}
+
+.checkDetail {
+  font-size: 10px;
+  margin-top: 2px;
+  color: #5a6a5a;
+}
+
+.checkOk {
+  color: var(--green-bright);
+}
+
+.checkWarn {
+  color: var(--amber);
+}
+
+.checkFail {
+  color: var(--red);
+}
+
+.refBox,
+.teachBox {
   background: var(--bg-surface);
   border: var(--border);
   border-radius: var(--radius);
@@ -375,7 +454,116 @@
   flex-shrink: 0;
 }
 
-@media (max-width: 700px) {
-  .sidebar { width: 150px; min-width: 130px; }
-  .freqDisplay { font-size: 16px; }
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE — stack sidebar above main, full width
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+
+  .page {
+    flex-direction: column;
+    overflow: auto;
+    height: auto;
+    min-height: 100%;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    border-right: none;
+    border-bottom: var(--border-bright);
+    overflow: visible;
+    flex-shrink: 0;
+  }
+
+  .catList {
+    flex-direction: row;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding: 8px;
+    gap: 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .catList::-webkit-scrollbar {
+    display: none;
+  }
+
+  .catBtn {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 8px 14px;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .catDesc {
+    display: none;
+  }
+
+  .scenList {
+    flex-direction: row;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding: 8px;
+    gap: 6px;
+    flex: none;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .scenList::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scenBtn {
+    flex-shrink: 0;
+    width: 160px;
+    padding: 10px 12px;
+  }
+
+  .main {
+    padding: 10px;
+    gap: 8px;
+    overflow-y: visible;
+    flex: none;
+  }
+
+  .radioHead {
+    padding: 10px 12px;
+  }
+
+  .freqDisplay {
+    font-size: 16px;
+    letter-spacing: 2px;
+  }
+
+  .squawkDisplay {
+    font-size: 14px;
+    letter-spacing: 2px;
+  }
+
+  .stateDisplay {
+    font-size: 9px;
+  }
+
+  .radioMeta {
+    font-size: 7px;
+  }
+
+  .transcript {
+    height: 150px;
+  }
+
+  .pttBtn {
+    font-size: 13px;
+    padding: 16px;
+    letter-spacing: 1.5px;
+  }
+
+  .replayBtn {
+    font-size: 9px;
+    padding: 12px 10px;
+  }
 }

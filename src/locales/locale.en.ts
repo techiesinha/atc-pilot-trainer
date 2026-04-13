@@ -31,7 +31,7 @@ export const en = {
     progress: 'Progress',
     suggestions: 'Suggestions',
     simulatorShort: 'SIM',
-    metarShort: 'WX',
+    metarShort: 'MET',
     phoneticsShort: 'PHO',
     progressShort: 'LOG',
     suggestionsShort: 'FB',
