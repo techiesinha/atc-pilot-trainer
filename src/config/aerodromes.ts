@@ -9,11 +9,49 @@ export interface Aerodrome {
   atisFreq: string;
   emergencyFreq: string;
   runways: string[];
-  typicalQNH: number;
   controlled: boolean;
   ctafFreq?: string;
   trainingArea?: string;
 }
+
+/**
+ * Shared QNH pool — Indian subcontinent, all seasons.
+ *
+ * All values are in hPa (whole numbers only).
+ * ICAO standard: QNH is always reported as a 4-digit integer in hPa.
+ * Decimals do not occur in hPa QNH — they only appear in inHg (USA).
+ *
+ * Seasonal ranges for India:
+ *   Summer  (Mar–Jun): 998 – 1006  low pressure, heat lows over land
+ *   Monsoon (Jul–Sep): 998 – 1008  low pressure systems, depressions
+ *   Winter  (Oct–Feb): 1010 – 1022 high pressure, clear stable air
+ *   Standard ISA:      1013
+ *
+ * NOTE: Duplicates are intentional.
+ * Values like 1013, 1014, 1010 appear multiple times to reflect their
+ * higher statistical frequency in real-world METAR observations.
+ * A value appearing twice has roughly twice the chance of being picked.
+ */
+export const QNH_POOL: readonly number[] = [
+  998, 999, 999, 1000, 1000,
+  1001, 1001, 1002, 1002, 1003,
+  1003, 1004, 1004, 1005, 1005,
+  1006, 1006, 1007, 1007, 1008,
+  1008, 1009, 1010, 1010, 1011,
+  1011, 1012, 1012, 1013, 1013,
+  1013, 1014, 1014, 1015, 1015,
+  1016, 1016, 1017, 1017, 1018,
+  1018, 1019, 1019, 1020, 1021,
+] as const;
+
+/**
+ * Returns a random QNH value from the shared QNH_POOL.
+ * Called once per scenario resolution so every session has a different QNH.
+ */
+export const pickRandomQnh = (): number => {
+  const randomIndex = Math.floor(Math.random() * QNH_POOL.length);
+  return QNH_POOL[randomIndex];
+};
 
 export const AERODROMES: Aerodrome[] = [
   {
@@ -27,7 +65,6 @@ export const AERODROMES: Aerodrome[] = [
     atisFreq: '126.350',
     emergencyFreq: '121.500',
     runways: ['09', '27'],
-    typicalQNH: 1013,
     controlled: true,
     trainingArea: 'Pune sector',
   },
@@ -42,7 +79,6 @@ export const AERODROMES: Aerodrome[] = [
     atisFreq: '126.450',
     emergencyFreq: '121.500',
     runways: ['09', '27', '14', '32'],
-    typicalQNH: 1010,
     controlled: true,
     trainingArea: 'Mumbai sector',
   },
@@ -57,7 +93,6 @@ export const AERODROMES: Aerodrome[] = [
     atisFreq: '126.150',
     emergencyFreq: '121.500',
     runways: ['10', '28', '11', '29'],
-    typicalQNH: 1015,
     controlled: true,
     trainingArea: 'Delhi sector',
   },
@@ -72,7 +107,6 @@ export const AERODROMES: Aerodrome[] = [
     atisFreq: '126.450',
     emergencyFreq: '121.500',
     runways: ['09', '27'],
-    typicalQNH: 1013,
     controlled: true,
     trainingArea: 'Bangalore sector',
   },
@@ -87,7 +121,6 @@ export const AERODROMES: Aerodrome[] = [
     atisFreq: '126.750',
     emergencyFreq: '121.500',
     runways: ['07', '25'],
-    typicalQNH: 1010,
     controlled: true,
     trainingArea: 'Chennai sector',
   },
@@ -102,7 +135,6 @@ export const AERODROMES: Aerodrome[] = [
     atisFreq: '126.250',
     emergencyFreq: '121.500',
     runways: ['05', '23'],
-    typicalQNH: 1014,
     controlled: true,
     trainingArea: 'Ahmedabad sector',
   },
@@ -117,11 +149,9 @@ export const AERODROMES: Aerodrome[] = [
     atisFreq: '',
     emergencyFreq: '121.500',
     runways: ['08', '26'],
-    typicalQNH: 1013,
     controlled: true,
     trainingArea: 'Dhule sector',
   },
-  // Uncontrolled aerodromes — CTAF training
   {
     icao: 'VAJJ',
     name: 'Jalgaon (uncontrolled)',
@@ -133,7 +163,6 @@ export const AERODROMES: Aerodrome[] = [
     atisFreq: '',
     emergencyFreq: '121.500',
     runways: ['08', '26'],
-    typicalQNH: 1013,
     controlled: false,
     ctafFreq: '122.800',
     trainingArea: 'Jalgaon area',
@@ -149,7 +178,6 @@ export const AERODROMES: Aerodrome[] = [
     atisFreq: '',
     emergencyFreq: '121.500',
     runways: ['06', '24'],
-    typicalQNH: 1013,
     controlled: false,
     ctafFreq: '122.800',
     trainingArea: 'Kolhapur area',
