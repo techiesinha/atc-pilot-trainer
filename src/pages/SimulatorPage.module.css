@@ -490,6 +490,7 @@
   }
 
   .catBtn {
+    width: auto;
     flex-shrink: 0;
     white-space: nowrap;
     padding: 8px 14px;
