@@ -1,73 +1,150 @@
 /**
  * avSpeak — Aviation phonetic number formatter
  *
- * Converts numeric strings to digit-by-digit format before
- * passing to Text-to-Speech so the browser reads them correctly.
+ * Converts numbers in ATC call text to ICAO-standard spoken form
+ * before passing to Text-to-Speech.
  *
- * Rules (ICAO Doc 9432):
- *   QNH / pressure  : digit by digit  1013 → "1 0 1 3"
- *   Frequency        : digit by digit  118.3 → "1 1 8 decimal 3"
- *   Runway           : digit by digit  27 → "2 7"  27L → "2 7 left"
- *   Squawk           : digit by digit  7700 → "7 7 0 0"
- *   Heading          : digit by digit  360 → "3 6 0"
- *   Altitude/FL      : spoken normally 2000 → "2 thousand"  FL150 → "flight level 1 5 0"
+ * ICAO Doc 9432 pronunciation rules:
+ *   0 → "zero"   (not "oh")
+ *   9 → "niner"  (not "nine" — avoids confusion with German "nein")
  */
 
-// Splits a string of digits into space-separated individual digits
-// "1013" → "1 0 1 3"
-function spellDigits(str: string): string {
-    return str.split('').join(' ');
-}
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-// Replace decimal point with "decimal" for frequencies
-// "118.3" → "1 1 8 decimal 3"
-function formatFrequency(freq: string): string {
-    return freq
-        .replace('.', ' decimal ')
+const ICAO_DIGIT_WORDS: Record<string, string> = {
+    '0': 'zero',
+    '1': 'one',
+    '2': 'two',
+    '3': 'three',
+    '4': 'four',
+    '5': 'five',
+    '6': 'six',
+    '7': 'seven',
+    '8': 'eight',
+    '9': 'niner',
+};
+
+const RUNWAY_SUFFIX_WORDS: Record<string, string> = {
+    L: 'left',
+    R: 'right',
+    C: 'centre',
+};
+
+const SPOKEN = {
+    DECIMAL: 'decimal',
+    QNH: 'QNH',
+    FLIGHT_LEVEL: 'flight level',
+    RUNWAY: 'runway',
+    HEADING: 'heading',
+    SQUAWK: 'squawk',
+} as const;
+
+const REGEX = {
+    // Frequency: 118.3, 121.50
+    FREQUENCY: /\b(\d{3})\.(\d{1,2})\b/g,
+    // QNH with prefix: QNH1013 or QNH 1013
+    QNH_WITH_PREFIX: /\bQNH\s*(\d{4})\b/gi,
+    // Flight level: FL150, FL80
+    FLIGHT_LEVEL: /\bFL(\d{2,3})\b/gi,
+    // Runway with optional suffix: runway 27L, runway 09R
+    RUNWAY_WITH_SUFFIX: /\brunway\s+(\d{1,2})([LRC]?)\b/gi,
+    // Heading: heading 270
+    HEADING: /\bheading\s+(\d{3})\b/gi,
+    // Squawk: squawk 7700
+    SQUAWK: /\bsquawk\s+(\d{4})\b/gi,
+    // Standalone 4-digit number
+    FOUR_DIGITS: /\b(\d{4})\b/g,
+    // Standalone 3-digit number
+    THREE_DIGITS: /\b(\d{3})\b/g,
+    // Standalone 2-digit number
+    TWO_DIGITS: /\b(\d{2})\b/g,
+    // Standalone single digit
+    ONE_DIGIT: /\b(\d)\b/g,
+    // Multiple spaces
+    MULTI_SPACE: /\s+/g,
+} as const;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Converts a string of digit characters to ICAO spoken words.
+ * "1013" → "one zero one three"
+ * "09"   → "zero niner"
+ */
+function spellDigits(digitString: string): string {
+    return digitString
         .split('')
-        .filter((c) => c !== '.')
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+        .map((digit) => ICAO_DIGIT_WORDS[digit] ?? digit)
+        .join(' ');
 }
 
-// Full regex replacements applied to ATC call text before TTS
-export function formatForSpeech(text: string): string {
-    return text
-        // Frequencies: 3 digits . 1-2 digits  e.g. 118.3, 121.50
-        .replace(/\b(\d{3})\.(\d{1,2})\b/g, (_, a, b) =>
-            `${spellDigits(a)} decimal ${spellDigits(b)}`
+/**
+ * Converts a runway number to its spoken form, zero-padded to two digits.
+ * "9" → "zero niner"
+ * "27" → "two seven"
+ */
+function spellRunwayNumber(runwayNumber: string): string {
+    const paddedNumber = runwayNumber.padStart(2, '0');
+    return spellDigits(paddedNumber);
+}
+
+/**
+ * Converts a runway suffix letter to its spoken word.
+ * "L" → "left", "R" → "right", "C" → "centre", "" → ""
+ */
+function spellRunwaySuffix(suffixLetter: string): string {
+    return RUNWAY_SUFFIX_WORDS[suffixLetter as keyof typeof RUNWAY_SUFFIX_WORDS] ?? '';
+}
+
+// ── Main formatter ────────────────────────────────────────────────────────────
+
+/**
+ * Formats ATC call text for ICAO-compliant Text-to-Speech output.
+ * Apply this to every string before passing to speak().
+ */
+export function formatForSpeech(atcText: string): string {
+    return atcText
+
+        // Frequencies: 118.3 → "one one eight decimal three"
+        .replace(REGEX.FREQUENCY, (_, integerPart: string, decimalPart: string) =>
+            `${spellDigits(integerPart)} ${SPOKEN.DECIMAL} ${spellDigits(decimalPart)}`
         )
 
-        // QNH / pressure: exactly 4 digits  e.g. 1013, 1008
-        .replace(/\bQ?(\d{4})\b/g, (match, digits) =>
-            match.startsWith('Q')
-                ? `QNH ${spellDigits(digits)}`
-                : spellDigits(digits)
+        // QNH: QNH 1013 → "QNH one zero one three"
+        .replace(REGEX.QNH_WITH_PREFIX, (_, pressureDigits: string) =>
+            `${SPOKEN.QNH} ${spellDigits(pressureDigits)}`
         )
 
-        // Squawk: exactly 4 digits already covered above
+        // Flight level: FL150 → "flight level one five zero"
+        .replace(REGEX.FLIGHT_LEVEL, (_, levelDigits: string) =>
+            `${SPOKEN.FLIGHT_LEVEL} ${spellDigits(levelDigits)}`
+        )
 
-        // Runway with suffix: 27L, 09R, 36C
-        .replace(/\brunway (\d{1,2})([LRC]?)\b/gi, (_, num, suffix) => {
-            const digits = spellDigits(num.padStart(2, '0'));
-            const sfx = suffix === 'L' ? ' left'
-                : suffix === 'R' ? ' right'
-                    : suffix === 'C' ? ' centre'
-                        : '';
-            return `runway ${digits}${sfx}`;
+        // Runway: runway 27L → "runway two seven left"
+        .replace(REGEX.RUNWAY_WITH_SUFFIX, (_, runwayNumber: string, suffixLetter: string) => {
+            const spokenNumber = spellRunwayNumber(runwayNumber);
+            const spokenSuffix = spellRunwaySuffix(suffixLetter);
+            const suffix = spokenSuffix ? ` ${spokenSuffix}` : '';
+            return `${SPOKEN.RUNWAY} ${spokenNumber}${suffix}`;
         })
 
-        // Headings: "heading 270" → "heading 2 7 0"
-        .replace(/\bheading (\d{3})\b/gi, (_, h) => `heading ${spellDigits(h)}`)
+        // Heading: heading 270 → "heading two seven zero"
+        .replace(REGEX.HEADING, (_, headingDigits: string) =>
+            `${SPOKEN.HEADING} ${spellDigits(headingDigits)}`
+        )
 
-        // Flight level: FL150 → "flight level 1 5 0"
-        .replace(/\bFL(\d{2,3})\b/gi, (_, fl) => `flight level ${spellDigits(fl)}`)
+        // Squawk: squawk 7700 → "squawk seven seven zero zero"
+        .replace(REGEX.SQUAWK, (_, squawkDigits: string) =>
+            `${SPOKEN.SQUAWK} ${spellDigits(squawkDigits)}`
+        )
 
-        // 3-digit standalone numbers (headings, speeds) — spell out
-        .replace(/\b(\d{3})\b/g, (_, n) => spellDigits(n))
+        // Remaining standalone numbers — longest first to avoid partial matches
+        .replace(REGEX.FOUR_DIGITS, (_, digits: string) => spellDigits(digits))
+        .replace(REGEX.THREE_DIGITS, (_, digits: string) => spellDigits(digits))
+        .replace(REGEX.TWO_DIGITS, (_, digits: string) => spellDigits(digits))
+        .replace(REGEX.ONE_DIGIT, (_, digit: string) => ICAO_DIGIT_WORDS[digit] ?? digit)
 
-        // 2-digit standalone numbers (runway without keyword)
-        // Skip — "2 7" without "runway" prefix is ambiguous
-        ;
+        // Clean up double spaces from replacements
+        .replace(REGEX.MULTI_SPACE, ' ')
+        .trim();
 }
