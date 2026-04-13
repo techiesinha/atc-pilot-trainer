@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { VoicePreference } from '../types';
 
 const VOICE_PREF_KEY = 'atcVoicePref';
@@ -15,14 +15,16 @@ function savePref(pref: VoicePreference) {
   localStorage.setItem(VOICE_PREF_KEY, JSON.stringify(pref));
 }
 
-/** Heuristically classify a SpeechSynthesisVoice as male or female. */
+function isMobile(): boolean {
+  return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+}
+
 function classifyVoice(v: SpeechSynthesisVoice): 'male' | 'female' {
   const n = v.name.toLowerCase();
-  const femaleHints = ['female','woman','girl','zira','hazel','susan','victoria','karen','samantha','fiona','moira','tessa','veena','raveena'];
-  const maleHints   = ['male','man','guy','david','george','daniel','james','alex','fred','thomas','rishi'];
+  const femaleHints = ['female', 'woman', 'girl', 'zira', 'hazel', 'susan', 'victoria', 'karen', 'samantha', 'fiona', 'moira', 'tessa', 'veena', 'raveena'];
+  const maleHints = ['male', 'man', 'guy', 'david', 'george', 'daniel', 'james', 'alex', 'fred', 'thomas', 'rishi'];
   if (femaleHints.some((h) => n.includes(h))) return 'female';
   if (maleHints.some((h) => n.includes(h))) return 'male';
-  // Default heuristic: voices with no gender hint alternate male/female by index
   return 'male';
 }
 
@@ -50,7 +52,7 @@ export function useSpeechSynthesis(): UseSpeechSynthesisResult {
   }, []);
 
   const availableVoices = {
-    male:   voices.filter((v) => classifyVoice(v) === 'male'),
+    male: voices.filter((v) => classifyVoice(v) === 'male'),
     female: voices.filter((v) => classifyVoice(v) === 'female'),
   };
 
@@ -60,20 +62,37 @@ export function useSpeechSynthesis(): UseSpeechSynthesisResult {
       const named = pool.find((v) => v.name === voicePref.voiceName);
       if (named) return named;
     }
-    // Prefer en-GB for ICAO standard
-    return pool.find((v) => v.lang === 'en-GB') ?? pool.find((v) => v.lang.startsWith('en')) ?? null;
+    return pool.find((v) => v.lang === 'en-GB')
+      ?? pool.find((v) => v.lang.startsWith('en'))
+      ?? null;
   }, [voicePref, availableVoices.male, availableVoices.female]);
 
   const speak = useCallback((text: string, onStart?: () => void, onEnd?: () => void) => {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
+    const mobile = isMobile();
+    const isMale = voicePref.gender === 'male';
+
     u.rate = 0.85;
-    u.pitch = voicePref.gender === 'male' ? 0.88 : 1.1;
     u.volume = 1.0;
-    const voice = getBestVoice();
-    if (voice) u.voice = voice;
+
+    if (mobile) {
+      // On mobile, voice switching via Web Speech API is unreliable.
+      // Android Chrome ignores the selected voice and uses the system default.
+      // Compensate with pitch — lower for male, higher for female.
+      u.pitch = isMale ? 0.6 : 1.2;
+      // Still attempt voice selection in case the device supports it
+      const voice = getBestVoice();
+      if (voice) u.voice = voice;
+    } else {
+      // Desktop — full voice selection works reliably
+      u.pitch = isMale ? 0.88 : 1.1;
+      const voice = getBestVoice();
+      if (voice) u.voice = voice;
+    }
+
     u.onstart = () => onStart?.();
-    u.onend   = () => onEnd?.();
+    u.onend = () => onEnd?.();
     u.onerror = () => onEnd?.();
     window.speechSynthesis.speak(u);
   }, [getBestVoice, voicePref.gender]);

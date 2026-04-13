@@ -10,6 +10,7 @@ import { SCENARIO_TEMPLATES, CATEGORIES, resolveScenario } from '../data/scenari
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { t } from '../locales';
+import { formatForSpeech } from '../services/avSpeak';
 import { evaluateReadback } from '../services/scoring';
 import { logEvent } from '../services/userService';
 import { Scenario, TranscriptEntry, FeedbackResult, SessionRecord, ScenarioCategory } from '../types';
@@ -80,14 +81,14 @@ export function SimulatorPage({ callsign, userId, speak, cancel }: Props) {
     } else {
       setSimState('atc_speaking');
       addEntry('atc', s.atcCall);
-      speak(s.atcCall, undefined, () => setSimState('standby'));
+      speak(formatForSpeech(s.atcCall), undefined, () => setSimState('standby'));
     }
   }, [cancel, stopSTT, addEntry, speak]);
 
   const replayATC = useCallback(() => {
     if (!currentScenario || currentScenario.pilotInitiated) return;
     cancel(); setSimState('atc_speaking');
-    speak(currentScenario.atcCall, undefined, () => setSimState('standby'));
+    speak((currentScenario.atcCall), undefined, () => setSimState('standby'));
   }, [currentScenario, cancel, speak]);
 
   const startTx = useCallback(() => {
