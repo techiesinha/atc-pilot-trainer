@@ -35,6 +35,8 @@ export const en = {
     phoneticsShort: 'PHO',
     progressShort: 'LOG',
     suggestionsShort: 'FB',
+    legal: 'Legal',
+    legalShort: 'LEG',
   },
 
   // ── CLOCK ─────────────────────────────────────────────────────────────────

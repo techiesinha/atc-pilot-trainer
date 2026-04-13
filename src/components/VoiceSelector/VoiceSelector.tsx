@@ -1,53 +1,69 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { t } from '../../locales';
 import { VoiceGender, VoicePreference } from '../../types';
 import styles from './VoiceSelector.module.css';
 
-interface Props {
+const VENDOR_NAMES_PATTERN = /Microsoft|Google|Apple/g;
+const EMPTY_STRING = '';
+
+interface VoiceSelectorProps {
   voicePref: VoicePreference;
   availableVoices: { male: SpeechSynthesisVoice[]; female: SpeechSynthesisVoice[] };
-  onGenderChange: (g: 'male' | 'female') => void;
-  onVoiceChange: (name: string) => void;
+  onGenderChange: (gender: VoiceGender) => void;
+  onVoiceChange: (voiceName: string) => void;
 }
 
-export function VoiceSelector({ voicePref, availableVoices, onGenderChange, onVoiceChange }: Props) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const pool = voicePref.gender === 'male' ? availableVoices.male : availableVoices.female;
+export const VoiceSelector = ({
+  voicePref,
+  availableVoices,
+  onGenderChange,
+  onVoiceChange,
+}: VoiceSelectorProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
+  const voicePool = voicePref.gender === VoiceGender.Male
+    ? availableVoices.male
+    : availableVoices.female;
+
   useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
+    if (!isOpen) return;
+
+    const handleOutsideClick = (mouseEvent: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(mouseEvent.target as Node)) {
+        setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => { document.removeEventListener('mousedown', handleOutsideClick); };
+  }, [isOpen]);
+
+  const cleanVoiceName = (rawVoiceName: string): string => {
+    return rawVoiceName.replace(VENDOR_NAMES_PATTERN, EMPTY_STRING).trim();
+  };
 
   return (
-    <div className={styles.wrap} ref={wrapRef}>
+    <div className={styles.wrap} ref={wrapperRef}>
       <div className={styles.genderBtns}>
         <button
-          className={`${styles.gBtn} ${voicePref.gender === 'male' ? styles.gActive : ''}`}
-          onClick={() => onGenderChange(VoiceGender.Male)}
+          className={`${styles.gBtn} ${voicePref.gender === VoiceGender.Male ? styles.gActive : ''}`}
+          onClick={() => { onGenderChange(VoiceGender.Male); }}
           title={t.voice.maleTitle}
         >
           {t.voice.male}
         </button>
         <button
-          className={`${styles.gBtn} ${voicePref.gender === 'female' ? styles.gActive : ''}`}
-          onClick={() => onGenderChange(VoiceGender.Female)}
+          className={`${styles.gBtn} ${voicePref.gender === VoiceGender.Female ? styles.gActive : ''}`}
+          onClick={() => { onGenderChange(VoiceGender.Female); }}
           title={t.voice.femaleTitle}
         >
           {t.voice.female}
         </button>
-        {pool.length > 1 && (
+        {voicePool.length > 1 && (
           <button
-            className={`${styles.voicePickBtn} ${open ? styles.voicePickActive : ''}`}
-            onClick={() => setOpen((o) => !o)}
+            className={`${styles.voicePickBtn} ${isOpen ? styles.voicePickActive : ''}`}
+            onClick={() => { setIsOpen((previousOpen) => !previousOpen); }}
             title={t.voice.pickTitle}
           >
             {t.voice.expand}
@@ -55,20 +71,20 @@ export function VoiceSelector({ voicePref, availableVoices, onGenderChange, onVo
         )}
       </div>
 
-      {open && pool.length > 0 && (
+      {isOpen && voicePool.length > 0 && (
         <div className={styles.dropdown}>
           <div className={styles.dropLabel}>{t.voice.dropLabel}</div>
-          {pool.map((v) => (
+          {voicePool.map((voice) => (
             <button
-              key={v.name}
-              className={`${styles.voiceOpt} ${voicePref.voiceName === v.name ? styles.voiceOptActive : ''}`}
-              onClick={() => { onVoiceChange(v.name); setOpen(false); }}
+              key={voice.name}
+              className={`${styles.voiceOpt} ${voicePref.voiceName === voice.name ? styles.voiceOptActive : ''}`}
+              onClick={() => { onVoiceChange(voice.name); setIsOpen(false); }}
             >
-              {v.name.replace(/Microsoft|Google|Apple/g, '').trim()}
+              {cleanVoiceName(voice.name)}
             </button>
           ))}
         </div>
       )}
     </div>
   );
-}
+};
