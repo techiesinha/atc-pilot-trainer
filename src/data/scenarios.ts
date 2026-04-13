@@ -953,21 +953,24 @@ export const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   },
 
   {
-    // FIX 5: Circuit altitude readback is just "Clear to circuit altitude, Roger" — not repeating sector
+    // Pilot tells AFISO they are climbing to circuit altitude and will call when in sector
     id: 'vadn_circuit_altitude',
     category: 'uncontrolled',
-    label: 'Circuit Altitude Clearance',
+    label: 'Clear to Circuit Altitude',
     difficulty: 'intermediate',
     freqType: 'ctaf',
-    pilotInitiated: false,
-    atcCallTemplate: '{CALLSIGN}, clear to circuit altitude, will call you when in sector {SECTOR}.',
-    idealResponseTemplate: 'Clear to circuit altitude, Roger, {CALLSIGN}.',
+    pilotInitiated: true,
+    situationTemplate: 'You have taken off from runway {RUNWAY} and are climbing. Report your status to Dhule Tower — you are clear to circuit altitude and will call when in sector {SECTOR}.',
+    atcCallTemplate: EMPTY_STRING,
+    idealResponseTemplate: 'Dhule Tower, {CALLSIGN}, clear to circuit altitude, will call you when in sector {SECTOR}.',
     checks: [
-      { label: '"Clear to circuit altitude" read back', keys: ['circuit altitude', 'clear to circuit'], err: 'Read back "clear to circuit altitude"' },
-      { label: '"Roger" stated', keys: ['roger'], err: 'Acknowledge with "Roger" — you do not need to repeat the sector back' },
-      { label: 'Callsign at end', keys: ['victor tango', 'vt'], err: 'End with your callsign' },
+      { label: '"Dhule Tower" called', keys: ['dhule tower', 'tower'], err: 'Address Dhule Tower' },
+      { label: 'Callsign stated', keys: ['victor tango', 'vt'], err: 'State your callsign' },
+      { label: '"Clear to circuit altitude" stated', keys: ['circuit altitude', 'clear to circuit'], err: 'State "clear to circuit altitude" to confirm your climb status' },
+      { label: '"Will call you when in sector" stated', keys: ['will call', 'sector'], err: 'State which sector you will call from — "will call you when in sector {SECTOR}"' },
+      { label: 'Sector direction stated', keys: ['north', 'south'], err: 'State the sector — North or South' },
     ],
-    teachingNote: 'At Dhule, the circuit altitude readback is simple: "Clear to circuit altitude, Roger, VT-___." You do NOT need to repeat back which sector. The AFISO will call you when you need to report your sector. Circuit altitude at VADN is 3500 feet AMSL.',
+    teachingNote: 'After takeoff at Dhule, YOU initiate this call — the AFISO does not prompt you. Say: "Dhule Tower, VT-___, clear to circuit altitude, will call you when in sector {SECTOR}." The AFISO responds "VT-___, Roger." Circuit altitude at VADN is 3500 feet AMSL.',
   },
 
   {

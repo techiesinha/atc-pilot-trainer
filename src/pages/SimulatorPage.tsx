@@ -234,6 +234,7 @@ export const SimulatorPage = ({
   const [liveTranscriptText, setLiveTranscriptText] = useState(EMPTY_STRING);
   const [feedbackResult, setFeedbackResult] = useState<FeedbackResult | null>(null);
   const [isWaveformActive, setIsWaveformActive] = useState(false);
+  const [showReference, setShowReference] = useState(false);
   const [, setSessions] = useLocalStorage<SessionRecord[]>(SESSIONS_STORAGE_KEY, []);
 
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
@@ -293,6 +294,7 @@ export const SimulatorPage = ({
     setTranscriptEntries([]);
     setFeedbackResult(null);
     setLiveTranscriptText(EMPTY_STRING);
+    setShowReference(false);
     liveTranscriptRef.current = EMPTY_STRING;
 
     if (scenario.pilotInitiated) {
@@ -476,7 +478,10 @@ export const SimulatorPage = ({
 
         <div className={styles.transcript} ref={transcriptScrollRef}>
           {transcriptEntries.length === 0 && (
-            <div className={styles.empty}>{t.simulator.log.empty}</div>
+            <div className={styles.empty}>
+              <span className={styles.emptyDesktop}>{t.simulator.log.empty}</span>
+              <span className={styles.emptyMobile}>{t.simulator.log.emptyMobile}</span>
+            </div>
           )}
           {transcriptEntries.map((entry, entryIndex) => (
             <div
@@ -505,6 +510,29 @@ export const SimulatorPage = ({
         </div>
 
         <Waveform isActive={isWaveformActive} />
+
+        {currentScenario && (
+          <div className={styles.referenceWrap}>
+            <button
+              className={`${styles.referenceToggle} ${showReference ? styles.referenceToggleOn : ''}`}
+              onClick={() => { setShowReference((prev) => !prev); }}
+            >
+              <span className={styles.referenceToggleLabel}>REFERENCE CALL</span>
+              <span className={styles.referenceToggleSwitch}>
+                <span className={`${styles.referenceTrack} ${showReference ? styles.referenceTrackOn : ''}`}>
+                  <span className={`${styles.referenceThumb} ${showReference ? styles.referenceThumbOn : ''}`} />
+                </span>
+                <span className={styles.referenceOnOff}>{showReference ? 'ON' : 'OFF'}</span>
+              </span>
+            </button>
+            {showReference && (
+              <div className={styles.referencePanel}>
+                <div className={styles.referenceLabel}>IDEAL READBACK</div>
+                <div className={styles.referenceText}>{currentScenario.idealResponse}</div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className={styles.controls}>
           <button

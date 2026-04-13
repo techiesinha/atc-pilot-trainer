@@ -86,6 +86,7 @@ const prodConfig: AppConfig = {
 
   developer: {
     name: 'Abhishek Sinha',
+    email: 'sinha.atctrainer@gmail.com',
     hamCallsign: 'VU3IXC',
     pilotLicense: 'SPL Holder — Cessna 172R',
     location: 'India',

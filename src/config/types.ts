@@ -61,6 +61,7 @@ export interface AppConfig {
 
   developer: {
     name: string;
+    email: string;
     hamCallsign: string;
     pilotLicense: string;
     location: string;

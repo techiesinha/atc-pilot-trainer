@@ -135,6 +135,7 @@ export const en = {
     // Communication log
     log: {
       empty: 'Select a scenario from the left panel to begin.',
+      emptyMobile: 'Select a scenario above to begin.',
       labelAtc: 'ATC',
       labelPilot: 'PILOT',
       labelSys: 'SYS',
@@ -156,7 +157,7 @@ export const en = {
       checkWarn: '△',
       checkFail: '✗',
       refReadback: 'REFERENCE READBACK',
-      teachingNote: 'TEACHING NOTE',
+      teachingNote: 'TEACHING NOTE'
     },
 
     // Errors / warnings
@@ -354,6 +355,14 @@ export const en = {
   feedback: {
     title: 'SUGGESTIONS',
     subtitle: 'HELP IMPROVE THIS TRAINER — YOUR FEEDBACK IS READ PERSONALLY',
+
+    hireBanner: {
+      tag: 'AVAILABLE FOR HIRE',
+      title: 'Need a web app or software product built?',
+      sub: 'Senior Frontend Engineer · React · TypeScript · Full-Stack · India',
+      linkedin: 'LinkedIn',
+      email: 'Email',
+    },
 
     intro: {
       builtBy: 'Built by',
