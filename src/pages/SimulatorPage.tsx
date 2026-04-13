@@ -88,7 +88,7 @@ export function SimulatorPage({ callsign, userId, speak, cancel }: Props) {
   const replayATC = useCallback(() => {
     if (!currentScenario || currentScenario.pilotInitiated) return;
     cancel(); setSimState('atc_speaking');
-    speak((currentScenario.atcCall), undefined, () => setSimState('standby'));
+    speak(formatForSpeech(currentScenario.atcCall), undefined, () => setSimState('standby'));
   }, [currentScenario, cancel, speak]);
 
   const startTx = useCallback(() => {
