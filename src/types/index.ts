@@ -43,7 +43,12 @@ export interface TranscriptEntry {
   timestamp: Date;
 }
 
-export type FeedbackStatus = 'pass' | 'partial' | 'fail' | 'idle';
+export enum FeedbackStatus {
+  Pass = 'pass',
+  Partial = 'partial',
+  Fail = 'fail',
+  Idle = 'idle',
+}
 
 export interface CheckResult {
   label: string;

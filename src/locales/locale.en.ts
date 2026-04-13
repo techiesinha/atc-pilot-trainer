@@ -216,6 +216,71 @@ export const en = {
     },
   },
 
+  // ── AVIATION WEATHER INTERPRETATION ───────────────────────────────────────
+  aviationWeather: {
+    notReported: 'Not reported',
+    calmWind: 'Calm',
+    variableWind: 'Variable',
+    skyClear: 'Sky clear',
+    clearBelow12000: 'Clear below 12,000ft',
+    cloudFew: 'Few',
+    cloudScattered: 'Scattered',
+    cloudBroken: 'Broken',
+    cloudOvercast: 'Overcast',
+    rawMetarUnavailable: 'Raw METAR not available',
+    remarksNone: 'None',
+    timeUnknown: 'Unknown',
+    visibilityMaxKm: '10 km or more',
+
+    wind: {
+      calm: 'Wind is calm. No crosswind on any runway.',
+      strong: (speed: number, limit: number) =>
+        `Strong wind — ${speed} kt. Crosswind may exceed C-172R limit (${limit} kt). Check before committing.`,
+      normal: (speed: number, direction: string | number) =>
+        `Wind ${speed} kt from ${direction}°. Calculate crosswind component for your runway.`,
+    },
+
+    visibility: {
+      good: 'Good visibility — no restrictions to VFR.',
+      marginal: 'Marginal VFR. Legal but reduced — extra vigilance required.',
+      poor: 'Below VFR minima. Do not depart VFR without ATC approval.',
+    },
+
+    cloud: {
+      low: 'Low cloud base — verify VFR cloud clearance and minimum sector altitudes.',
+      acceptable: 'Cloud cover acceptable for VFR. Monitor for development.',
+    },
+
+    temperature: {
+      fogRisk: (spread: number) =>
+        `Temp/dew spread only ${spread}°C — fog or low cloud likely.`,
+      noFogRisk: (temp: number, dew: number, spread: number) =>
+        `Temp ${temp}°C / Dew ${dew}°C — spread ${spread}°C, no immediate fog risk.`,
+    },
+
+    pressure: {
+      summary: (qnh: number, note: string) => `QNH ${qnh} hPa. ${note}`,
+      low: 'Low pressure — density altitude elevated, performance reduced.',
+      high: 'High pressure — good performance, watch for temperature inversions.',
+      standard: 'Near standard pressure.',
+    },
+
+    pilotAdvice: {
+      VFR: 'Conditions are VFR. Visual flight permitted. Monitor for changes.',
+      MVFR: 'Marginal VFR. Proceed with caution. Consider delaying if conditions worsening.',
+      IFR: 'IFR conditions. VFR flight not permitted. Do not depart unless instrument rated.',
+      LIFR: 'Low IFR — severely restricted. Do not operate VFR.',
+      UNKNOWN: 'Flight category undetermined. Assess each element before flight.',
+    },
+
+    errors: {
+      noMetarFound: (icao: string) => `No METAR found for ${icao}`,
+      proxyHttpError: (status: number) => `Aviation Weather via proxy returned HTTP ${status}`,
+      checkWxHttpError: (status: number) => `CheckWX returned HTTP ${status}`,
+      noCheckWxData: (icao: string) => `No CheckWX data for ${icao}`,
+    },
+  },
+
   // ── PHONETICS ─────────────────────────────────────────────────────────────
   phonetics: {
     title: 'PHONETIC ALPHABET',

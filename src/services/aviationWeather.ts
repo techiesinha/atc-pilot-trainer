@@ -1,23 +1,72 @@
 import { config, log } from '../config';
+import { t } from '../locales';
 import { MetarData, MetarInterpretation } from '../types';
 
-/**
- * METAR Service — two sources, automatic fallback
- *
- * Source priority is set by config.metar.primary:
- *
- *   'checkwx'         → CheckWX API (config.metar.checkwx)
- *                        Structured JSON, native CORS, 500 req/month free tier
- *                        Falls back to aviationweather if request fails
- *
- *   'aviationweather' → Aviation Weather Center (config.metar.aviationWeather)
- *                        NOAA/NWS data, free, no key needed
- *                        Requires config.metar.corsProxy because of CORS policy
- *
- * corsproxy.io format: https://corsproxy.io/?{encoded_target_url}
- */
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-interface RawAWC {
+const MAX_VISIBILITY_METRES = 9999;
+const ONE_KM_IN_METRES = 1000;
+const LOW_CLOUD_BASE_CEILING_FL = 15;
+const FOG_SPREAD_THRESHOLD_CELSIUS = 3;
+const STANDARD_QNH_LOW_HPA = 1000;
+const STANDARD_QNH_HIGH_HPA = 1025;
+const STRONG_WIND_THRESHOLD_KTS = 20;
+const CROSSWIND_LIMIT_C172R_KTS = 15;
+const MARGINAL_VFR_VISIBILITY_KM = 8;
+const BELOW_VFR_VISIBILITY_KM = 5;
+const DEFAULT_TEMPERATURE_CELSIUS = 20;
+const DEFAULT_DEWPOINT_CELSIUS = 0;
+const DEFAULT_QNH_HPA = 1013;
+const DEFAULT_VISIBILITY = 9999;
+const FEET_PER_FLIGHT_LEVEL = 100;
+const METAR_HOURS_LOOKBACK = 2;
+const WIND_DIRECTION_VARIABLE = 'VRB';
+const VISIBILITY_PLUS_MAX = '+9999';
+const WIND_PAD_LENGTH = 3;
+const WIND_PAD_CHARACTER = '0';
+
+const LOW_CLOUD_COVER_CODES = ['BKN', 'OVC'] as const;
+
+const CLOUD_COVER_LABELS: Record<string, string> = {
+  SKC: t.aviationWeather.skyClear,
+  CLR: t.aviationWeather.clearBelow12000,
+  FEW: t.aviationWeather.cloudFew,
+  SCT: t.aviationWeather.cloudScattered,
+  BKN: t.aviationWeather.cloudBroken,
+  OVC: t.aviationWeather.cloudOvercast,
+};
+
+enum FlightCategory {
+  VFR = 'VFR',
+  MVFR = 'MVFR',
+  IFR = 'IFR',
+  LIFR = 'LIFR',
+  Unknown = 'UNKNOWN',
+}
+
+const VALID_FLIGHT_CATEGORIES: FlightCategory[] = [
+  FlightCategory.VFR,
+  FlightCategory.MVFR,
+  FlightCategory.IFR,
+  FlightCategory.LIFR,
+];
+
+const PILOT_ADVICE: Record<FlightCategory, string> = {
+  [FlightCategory.VFR]: t.aviationWeather.pilotAdvice.VFR,
+  [FlightCategory.MVFR]: t.aviationWeather.pilotAdvice.MVFR,
+  [FlightCategory.IFR]: t.aviationWeather.pilotAdvice.IFR,
+  [FlightCategory.LIFR]: t.aviationWeather.pilotAdvice.LIFR,
+  [FlightCategory.Unknown]: t.aviationWeather.pilotAdvice.UNKNOWN,
+};
+
+// ── Interfaces ────────────────────────────────────────────────────────────────
+
+interface RawCloudLayer {
+  cover: string;
+  base?: number;
+}
+
+interface RawMetarData {
   rawOb?: string;
   stationId?: string;
   reportTime?: string;
@@ -27,182 +76,260 @@ interface RawAWC {
   wspd?: number;
   visib?: number | string;
   altim?: number;
-  clouds?: Array<{ cover: string; base?: number }>;
+  clouds?: RawCloudLayer[];
   flightCategory?: string;
   remarks?: string;
 }
 
-export async function fetchMetar(icao: string): Promise<MetarData> {
-  const code = icao.trim().toUpperCase();
+interface CheckWxCloud {
+  code: string;
+  base_feet_agl?: number;
+}
 
-  // Try primary source first
-  if (config.metar.primary === 'checkwx' && config.metar.checkwx.key) {
-    try {
-      return await fetchCheckWX(code);
-    } catch (e) {
-      log.warn('CheckWX failed, falling back to AWC via proxy:', e);
-    }
+interface CheckWxResponse {
+  raw_text?: string;
+  icao?: string;
+  observed?: string;
+  temperature?: { celsius?: number };
+  dewpoint?: { celsius?: number };
+  wind?: { degrees?: number; speed_kts?: number };
+  visibility?: { miles_float?: number };
+  barometer?: { hpa?: number };
+  clouds?: CheckWxCloud[];
+  flight_category?: string;
+  remarks?: string;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const validateFlightCategory = (rawCategory?: string): FlightCategory => {
+  const categoryValue = rawCategory as FlightCategory;
+  return VALID_FLIGHT_CATEGORIES.includes(categoryValue)
+    ? categoryValue
+    : FlightCategory.Unknown;
+};
+
+const formatWindSummary = (
+  windDirection?: number | string,
+  windSpeed?: number
+): string => {
+  if (!windSpeed || windSpeed === 0) return t.aviationWeather.calmWind;
+  if (windDirection === WIND_DIRECTION_VARIABLE) {
+    return t.aviationWeather.wind.strong(windSpeed, CROSSWIND_LIMIT_C172R_KTS);
   }
+  return t.aviationWeather.wind.normal(
+    windSpeed,
+    String(windDirection).padStart(WIND_PAD_LENGTH, WIND_PAD_CHARACTER)
+  );
+};
 
-  // Aviation Weather Center via CORS proxy
-  return await fetchAWCWithProxy(code);
-}
+const formatVisibilitySummary = (rawVisibility?: number | string): string => {
+  if (rawVisibility === undefined) return t.aviationWeather.notReported;
 
-async function fetchAWCWithProxy(icao: string): Promise<MetarData> {
-  const target = `${config.metar.aviationWeather.baseUrl}/metar?ids=${icao}&format=json&hours=2`;
-  const proxied = `${config.metar.corsProxy}${encodeURIComponent(target)}`;
+  const visibilityNumber = Number(rawVisibility);
 
-  log.info(`Fetching METAR via corsproxy: ${icao}`);
+  if (visibilityNumber >= MAX_VISIBILITY_METRES || rawVisibility === VISIBILITY_PLUS_MAX) {
+    return t.aviationWeather.visibilityMaxKm;
+  }
+  if (visibilityNumber >= 1) {
+    return `${visibilityNumber.toFixed(1)} km`;
+  }
+  return `${Math.round(visibilityNumber * ONE_KM_IN_METRES)} m`;
+};
 
-  const res = await fetch(proxied, { headers: { Accept: 'application/json' } });
-  if (!res.ok) throw new Error(`AWC via proxy returned HTTP ${res.status}`);
+const formatCloudSummary = (cloudLayers?: RawCloudLayer[]): string => {
+  if (!cloudLayers || cloudLayers.length === 0) return t.aviationWeather.skyClear;
 
-  const data: RawAWC[] = await res.json();
-  if (!data || data.length === 0) throw new Error(`No METAR found for ${icao}`);
+  return cloudLayers
+    .map((layer) => {
+      const coverLabel = CLOUD_COVER_LABELS[layer.cover] ?? layer.cover;
+      const baseLabel = layer.base !== undefined
+        ? ` at ${layer.base * FEET_PER_FLIGHT_LEVEL} ft`
+        : '';
+      return `${coverLabel}${baseLabel}`;
+    })
+    .join(', ');
+};
 
-  return parseAWC(data[0], icao);
-}
+const formatReportTime = (reportTime: string): string => {
+  try {
+    return new Date(reportTime).toUTCString().replace('GMT', 'UTC');
+  } catch {
+    return reportTime;
+  }
+};
 
-async function fetchCheckWX(icao: string): Promise<MetarData> {
-  const url = `${config.metar.checkwx.baseUrl}/metar/${icao}/decoded`;
+const buildInterpretation = (
+  rawMetar: RawMetarData,
+  flightCategory: FlightCategory
+): MetarInterpretation => {
+  const windSpeed = rawMetar.wspd ?? 0;
+  const temperature = rawMetar.temp ?? DEFAULT_TEMPERATURE_CELSIUS;
+  const dewpoint = rawMetar.dewpoint ?? DEFAULT_DEWPOINT_CELSIUS;
+  const qnh = rawMetar.altim ?? DEFAULT_QNH_HPA;
+  const visibility = Number(rawMetar.visib ?? DEFAULT_VISIBILITY);
+  const tempDewSpread = temperature - dewpoint;
 
-  log.info(`Fetching METAR via CheckWX: ${icao}`);
+  const windSummary = windSpeed === 0
+    ? t.aviationWeather.wind.calm
+    : windSpeed > STRONG_WIND_THRESHOLD_KTS
+      ? t.aviationWeather.wind.strong(windSpeed, CROSSWIND_LIMIT_C172R_KTS)
+      : t.aviationWeather.wind.normal(windSpeed, rawMetar.wdir ?? WIND_DIRECTION_VARIABLE);
 
-  const res = await fetch(url, {
-    headers: { 'X-API-Key': config.metar.checkwx.key },
-  });
-  if (!res.ok) throw new Error(`CheckWX returned HTTP ${res.status}`);
+  const visibilitySummary = visibility >= MARGINAL_VFR_VISIBILITY_KM
+    ? t.aviationWeather.visibility.good
+    : visibility >= BELOW_VFR_VISIBILITY_KM
+      ? t.aviationWeather.visibility.marginal
+      : t.aviationWeather.visibility.poor;
 
-  const json = await res.json();
-  const d = json?.data?.[0];
-  if (!d) throw new Error(`No CheckWX data for ${icao}`);
+  const hasLowCloudBase = rawMetar.clouds?.some(
+    (layer) =>
+      LOW_CLOUD_COVER_CODES.includes(layer.cover as typeof LOW_CLOUD_COVER_CODES[number]) &&
+      (layer.base ?? DEFAULT_VISIBILITY) < LOW_CLOUD_BASE_CEILING_FL
+  );
 
-  // Map CheckWX decoded response → internal RawAWC shape
-  const raw: RawAWC = {
-    rawOb: d.raw_text,
-    stationId: d.icao,
-    reportTime: d.observed,
-    temp: d.temperature?.celsius,
-    dewpoint: d.dewpoint?.celsius,
-    wdir: d.wind?.degrees ?? 'VRB',
-    wspd: d.wind?.speed_kts,
-    visib: d.visibility?.miles_float,
-    altim: d.barometer?.hpa,
-    clouds: d.clouds?.map((c: { code: string; base_feet_agl?: number }) => ({
-      cover: c.code,
-      base: c.base_feet_agl ? Math.round(c.base_feet_agl / 100) : undefined,
-    })),
-    flightCategory: d.flight_category,
-    remarks: d.remarks,
-  };
+  const cloudSummary = hasLowCloudBase
+    ? t.aviationWeather.cloud.low
+    : t.aviationWeather.cloud.acceptable;
 
-  return parseAWC(raw, icao);
-}
+  const tempSummary = tempDewSpread < FOG_SPREAD_THRESHOLD_CELSIUS
+    ? t.aviationWeather.temperature.fogRisk(tempDewSpread)
+    : t.aviationWeather.temperature.noFogRisk(
+      Math.round(temperature),
+      Math.round(dewpoint),
+      tempDewSpread
+    );
 
-function parseAWC(raw: RawAWC, icao: string): MetarData {
-  const wind = formatWind(raw.wdir, raw.wspd);
-  const visibility = formatVisibility(raw.visib);
-  const clouds = formatClouds(raw.clouds);
-  const temp = raw.temp !== undefined ? `${Math.round(raw.temp)}°C` : 'Not reported';
-  const dewpoint = raw.dewpoint !== undefined ? `${Math.round(raw.dewpoint)}°C` : 'Not reported';
-  const altimeter = raw.altim !== undefined ? `${raw.altim.toFixed(0)} hPa` : 'Not reported';
-  const cat = validateCategory(raw.flightCategory);
+  const pressureNote = qnh < STANDARD_QNH_LOW_HPA
+    ? t.aviationWeather.pressure.low
+    : qnh > STANDARD_QNH_HIGH_HPA
+      ? t.aviationWeather.pressure.high
+      : t.aviationWeather.pressure.standard;
+
+  const altimeterSummary = t.aviationWeather.pressure.summary(
+    Math.round(qnh),
+    pressureNote
+  );
 
   return {
-    raw: raw.rawOb ?? 'Raw METAR not available',
-    station: raw.stationId ?? icao,
+    windSummary,
+    visibilitySummary,
+    cloudSummary,
+    tempSummary,
+    altimeterSummary,
+    pilotAdvice: PILOT_ADVICE[flightCategory],
+  };
+};
+
+const parseRawMetar = (rawMetar: RawMetarData, icao: string): MetarData => {
+  const wind = formatWindSummary(rawMetar.wdir, rawMetar.wspd);
+  const visibility = formatVisibilitySummary(rawMetar.visib);
+  const clouds = formatCloudSummary(rawMetar.clouds);
+  const temperature = rawMetar.temp !== undefined
+    ? `${Math.round(rawMetar.temp)}°C`
+    : t.aviationWeather.notReported;
+  const dewpoint = rawMetar.dewpoint !== undefined
+    ? `${Math.round(rawMetar.dewpoint)}°C`
+    : t.aviationWeather.notReported;
+  const altimeter = rawMetar.altim !== undefined
+    ? `${rawMetar.altim.toFixed(0)} hPa`
+    : t.aviationWeather.notReported;
+  const flightCategory = validateFlightCategory(rawMetar.flightCategory);
+
+  return {
+    raw: rawMetar.rawOb ?? t.aviationWeather.rawMetarUnavailable,
+    station: rawMetar.stationId ?? icao,
     name: icao,
-    time: raw.reportTime ? formatTime(raw.reportTime) : 'Unknown',
+    time: rawMetar.reportTime
+      ? formatReportTime(rawMetar.reportTime)
+      : t.aviationWeather.timeUnknown,
     wind,
     visibility,
     clouds,
-    temp,
+    temp: temperature,
     dewpoint,
     altimeter,
-    remarks: raw.remarks ?? 'None',
-    flightCategory: cat,
-    interpretation: buildInterpretation(raw, cat),
+    remarks: rawMetar.remarks ?? t.aviationWeather.remarksNone,
+    flightCategory,
+    interpretation: buildInterpretation(rawMetar, flightCategory),
   };
-}
+};
 
-function formatWind(dir?: number | string, speed?: number): string {
-  if (!speed || speed === 0) return 'Calm';
-  if (dir === 'VRB') return `Variable at ${speed} knots`;
-  return `${String(dir).padStart(3, '0')}° at ${speed} knots`;
-}
+// ── Fetchers ──────────────────────────────────────────────────────────────────
 
-function formatVisibility(vis?: number | string): string {
-  if (vis === undefined) return 'Not reported';
-  const n = Number(vis);
-  if (n >= 9999 || vis === '+9999') return '10 km or more';
-  if (n >= 1) return `${n.toFixed(1)} km`;
-  return `${Math.round(n * 1000)} m`;
-}
+const fetchFromAviationWeatherWithProxy = async (icaoCode: string): Promise<MetarData> => {
+  const targetUrl = `${config.metar.aviationWeather.baseUrl}/metar?ids=${icaoCode}&format=json&hours=${METAR_HOURS_LOOKBACK}`;
+  const proxiedUrl = `${config.metar.corsProxy}${encodeURIComponent(targetUrl)}`;
 
-function formatClouds(clouds?: Array<{ cover: string; base?: number }>): string {
-  if (!clouds || clouds.length === 0) return 'Sky clear';
-  const map: Record<string, string> = {
-    SKC: 'Sky clear', CLR: 'Clear below 12,000ft',
-    FEW: 'Few', SCT: 'Scattered', BKN: 'Broken', OVC: 'Overcast',
-  };
-  return clouds
-    .map((c) => `${map[c.cover] ?? c.cover}${c.base !== undefined ? ` at ${c.base * 100} ft` : ''}`)
-    .join(', ');
-}
+  log.info(`Fetching METAR via proxy: ${icaoCode}`);
 
-function formatTime(t: string): string {
-  try { return new Date(t).toUTCString().replace('GMT', 'UTC'); } catch { return t; }
-}
+  const response = await fetch(proxiedUrl, { headers: { Accept: 'application/json' } });
+  if (!response.ok) {
+    throw new Error(t.aviationWeather.errors.proxyHttpError(response.status));
+  }
 
-type FlightCategory = 'VFR' | 'MVFR' | 'IFR' | 'LIFR' | 'UNKNOWN';
+  const rawDataArray: RawMetarData[] = await response.json();
+  if (!rawDataArray || rawDataArray.length === 0) {
+    throw new Error(t.aviationWeather.errors.noMetarFound(icaoCode));
+  }
 
-function validateCategory(cat?: string): FlightCategory {
-  const valid: FlightCategory[] = ['VFR', 'MVFR', 'IFR', 'LIFR'];
-  return valid.includes(cat as FlightCategory)
-    ? (cat as FlightCategory)
-    : 'UNKNOWN';
-}
+  return parseRawMetar(rawDataArray[0], icaoCode);
+};
 
-function buildInterpretation(raw: RawAWC, cat: MetarData['flightCategory']): MetarInterpretation {
-  const speed = raw.wspd ?? 0;
-  const windSummary = speed === 0
-    ? 'Wind is calm. No crosswind on any runway.'
-    : speed > 20
-      ? `Strong wind — ${speed} kt. Crosswind may exceed C-172R limit (15 kt). Check before committing.`
-      : `Wind ${speed} kt from ${raw.wdir}°. Calculate crosswind component for your runway.`;
+const fetchFromCheckWX = async (icaoCode: string): Promise<MetarData> => {
+  const requestUrl = `${config.metar.checkwx.baseUrl}/metar/${icaoCode}/decoded`;
 
-  const vis = Number(raw.visib ?? 9999);
-  const visibilitySummary = vis >= 8
-    ? 'Good visibility — no restrictions to VFR.'
-    : vis >= 5
-      ? 'Marginal VFR. Legal but reduced — extra vigilance required.'
-      : 'Below VFR minima. Do not depart VFR without ATC approval.';
+  log.info(`Fetching METAR via CheckWX: ${icaoCode}`);
 
-  const hasLowCloud = raw.clouds?.some((c) => ['BKN', 'OVC'].includes(c.cover) && (c.base ?? 999) < 15);
-  const cloudSummary = hasLowCloud
-    ? 'Low cloud base — verify VFR cloud clearance and minimum sector altitudes.'
-    : 'Cloud cover acceptable for VFR. Monitor for development.';
+  const response = await fetch(requestUrl, {
+    headers: { 'X-API-Key': config.metar.checkwx.key },
+  });
 
-  const t2 = raw.temp ?? 20;
-  const dp = raw.dewpoint ?? 0;
-  const spread = t2 - dp;
-  const tempSummary = spread < 3
-    ? `Temp/dew spread only ${spread}°C — fog or low cloud likely.`
-    : `Temp ${Math.round(t2)}°C / Dew ${Math.round(dp)}°C — spread ${spread}°C, no immediate fog risk.`;
+  if (!response.ok) {
+    throw new Error(t.aviationWeather.errors.checkWxHttpError(response.status));
+  }
 
-  const qnh = raw.altim ?? 1013;
-  const altimeterSummary = `QNH ${Math.round(qnh)} hPa. ${qnh < 1000 ? 'Low pressure — density altitude elevated, performance reduced.'
-      : qnh > 1025 ? 'High pressure — good performance, watch for temperature inversions.'
-        : 'Near standard pressure.'
-    }`;
+  const responseJson = await response.json();
+  const checkWxData: CheckWxResponse = responseJson?.data?.[0];
+  if (!checkWxData) {
+    throw new Error(t.aviationWeather.errors.noCheckWxData(icaoCode));
+  }
 
-  const adviceMap: Record<string, string> = {
-    VFR: 'Conditions are VFR. Visual flight permitted. Monitor for changes.',
-    MVFR: 'Marginal VFR. Proceed with caution. Consider delaying if conditions worsening.',
-    IFR: 'IFR conditions. VFR flight not permitted. Do not depart unless instrument rated.',
-    LIFR: 'Low IFR — severely restricted. Do not operate VFR.',
-    UNKNOWN: 'Flight category undetermined. Assess each element before flight.',
+  const normalizedRawMetar: RawMetarData = {
+    rawOb: checkWxData.raw_text,
+    stationId: checkWxData.icao,
+    reportTime: checkWxData.observed,
+    temp: checkWxData.temperature?.celsius,
+    dewpoint: checkWxData.dewpoint?.celsius,
+    wdir: checkWxData.wind?.degrees ?? WIND_DIRECTION_VARIABLE,
+    wspd: checkWxData.wind?.speed_kts,
+    visib: checkWxData.visibility?.miles_float,
+    altim: checkWxData.barometer?.hpa,
+    clouds: checkWxData.clouds?.map((cloudLayer) => ({
+      cover: cloudLayer.code,
+      base: cloudLayer.base_feet_agl
+        ? Math.round(cloudLayer.base_feet_agl / FEET_PER_FLIGHT_LEVEL)
+        : undefined,
+    })),
+    flightCategory: checkWxData.flight_category,
+    remarks: checkWxData.remarks,
   };
 
-  return { windSummary, visibilitySummary, cloudSummary, tempSummary, altimeterSummary, pilotAdvice: adviceMap[cat] };
-}
+  return parseRawMetar(normalizedRawMetar, icaoCode);
+};
+
+// ── Public API ────────────────────────────────────────────────────────────────
+
+export const fetchMetar = async (icao: string): Promise<MetarData> => {
+  const normalizedIcao = icao.trim().toUpperCase();
+
+  if (config.metar.primary === 'checkwx' && config.metar.checkwx.key) {
+    try {
+      return await fetchFromCheckWX(normalizedIcao);
+    } catch (fetchError) {
+      log.warn('CheckWX failed, falling back to Aviation Weather via proxy:', fetchError);
+    }
+  }
+
+  return fetchFromAviationWeatherWithProxy(normalizedIcao);
+};

@@ -7,7 +7,7 @@ import { config, log } from '../config';
  * The developer's TO email is set inside the EmailJS dashboard template only —
  * never in source code.
  *
- * Template variables used (update your EmailJS template to include all of these):
+ * Template variables (update your EmailJS template to include all of these):
  *   {{from_name}}     — sender's name
  *   {{from_email}}    — sender's email (set as Reply-To in template)
  *   {{sent_time}}     — UTC timestamp of submission
@@ -16,26 +16,28 @@ import { config, log } from '../config';
  *   {{message}}       — the feedback message
  */
 
-export interface FeedbackPayload {
-  from_name:     string;
-  from_email:    string;
-  sent_time:     string;
-  pilot_level:   string;
-  feedback_type: string;
-  message:       string;
-}
+const EMAIL_SUCCESS_STATUS = 200;
 
-let initialised = false;
+let isEmailJsInitialised = false;
 
-function init() {
-  if (initialised) return;
+const initialiseEmailJs = (): void => {
+  if (isEmailJsInitialised) return;
   emailjs.init({ publicKey: config.contactus.emailjs.publicKey });
-  initialised = true;
+  isEmailJsInitialised = true;
   log.info('EmailJS initialised');
+};
+
+export interface FeedbackPayload {
+  from_name: string;
+  from_email: string;
+  sent_time: string;
+  pilot_level: string;
+  feedback_type: string;
+  message: string;
 }
 
-export async function sendFeedback(payload: FeedbackPayload): Promise<void> {
-  init();
+export const sendFeedback = async (payload: FeedbackPayload): Promise<void> => {
+  initialiseEmailJs();
   log.info('Sending feedback via EmailJS, type:', payload.feedback_type);
 
   const result = await emailjs.send(
@@ -44,9 +46,9 @@ export async function sendFeedback(payload: FeedbackPayload): Promise<void> {
     payload as unknown as Record<string, unknown>
   );
 
-  if (result.status !== 200) {
+  if (result.status !== EMAIL_SUCCESS_STATUS) {
     throw new Error(`EmailJS returned status ${result.status}: ${result.text}`);
   }
 
   log.info('Feedback sent successfully');
-}
+};

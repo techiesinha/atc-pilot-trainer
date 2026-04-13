@@ -9,39 +9,56 @@
  * suggested automatically after the first successful lookup.
  */
 
-const CACHE_KEY = 'atcMetarCache';
+const METAR_CACHE_STORAGE_KEY = 'atcMetarCache';
+const MIN_SEARCH_QUERY_LENGTH = 2;
 
 export interface CachedAirport {
-  icao:    string;
-  name:    string;    // station name or city returned by the API
-  savedAt: string;    // ISO timestamp
+  icao: string;
+  name: string;
+  savedAt: string;
 }
 
-export function saveToMetarCache(icao: string, name: string): void {
+const getMetarCacheRaw = (): Record<string, CachedAirport> => {
   try {
-    const existing = getMetarCacheRaw();
-    existing[icao] = { icao, name, savedAt: new Date().toISOString() };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(existing));
-  } catch { /* quota or parse error — ignore silently */ }
-}
+    const rawCache = localStorage.getItem(METAR_CACHE_STORAGE_KEY);
+    return rawCache
+      ? (JSON.parse(rawCache) as Record<string, CachedAirport>)
+      : {};
+  } catch {
+    return {};
+  }
+};
 
-export function getCachedAirports(): CachedAirport[] {
+export const saveToMetarCache = (icao: string, airportName: string): void => {
+  try {
+    const existingCache = getMetarCacheRaw();
+    existingCache[icao] = {
+      icao,
+      name: airportName,
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(METAR_CACHE_STORAGE_KEY, JSON.stringify(existingCache));
+  } catch {
+    /* storage quota or parse error — ignore silently */
+  }
+};
+
+export const getCachedAirports = (): CachedAirport[] => {
   try {
     return Object.values(getMetarCacheRaw());
-  } catch { return []; }
-}
+  } catch {
+    return [];
+  }
+};
 
-export function searchCachedAirports(query: string): CachedAirport[] {
-  if (!query || query.length < 2) return [];
-  const q = query.toLowerCase();
+export const searchCachedAirports = (searchQuery: string): CachedAirport[] => {
+  if (!searchQuery || searchQuery.length < MIN_SEARCH_QUERY_LENGTH) return [];
+
+  const normalizedQuery = searchQuery.toLowerCase();
+
   return getCachedAirports().filter(
-    (a) => a.icao.toLowerCase().includes(q) || a.name.toLowerCase().includes(q)
+    (airport) =>
+      airport.icao.toLowerCase().includes(normalizedQuery) ||
+      airport.name.toLowerCase().includes(normalizedQuery)
   );
-}
-
-function getMetarCacheRaw(): Record<string, CachedAirport> {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, CachedAirport>) : {};
-  } catch { return {}; }
-}
+};
