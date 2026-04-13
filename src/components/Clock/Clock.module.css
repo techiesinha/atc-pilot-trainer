@@ -45,3 +45,27 @@
   margin-top: 2px;
   text-align: right;
 }
+
+@media (max-width: 640px) {
+  .clock {
+    min-width: 0;
+    padding: 4px 8px;
+  }
+
+  .time {
+    font-size: 11px;
+  }
+
+  .timeUtc {
+    font-size: 11px;
+  }
+
+  .label {
+    font-size: 7px;
+    min-width: 20px;
+  }
+
+  .date {
+    font-size: 7px;
+  }
+}

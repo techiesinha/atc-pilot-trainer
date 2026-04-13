@@ -1,3 +1,4 @@
+/* ── DESKTOP NAV (single row) ────────────────────────────────────────────── */
 .nav {
   display: flex;
   align-items: center;
@@ -16,6 +17,7 @@
   gap: 20px;
   min-width: 0;
   flex: 1;
+  overflow: hidden;
 }
 
 .right {
@@ -70,6 +72,7 @@
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .links::-webkit-scrollbar {
@@ -135,27 +138,61 @@
   }
 }
 
+/* ── MOBILE NAV (two rows) ───────────────────────────────────────────────── */
 @media (max-width: 640px) {
+
+  /* Stack into two rows */
+  .nav {
+    flex-direction: column;
+    height: auto;
+    padding: 0;
+    gap: 0;
+    align-items: stretch;
+  }
+
+  /* Row 1 (top): placard + voice + clock + avatar */
+  .right {
+    order: 1;
+    padding: 6px 10px;
+    gap: 8px;
+    border-bottom: var(--border);
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .placardWrap {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .clockWrap {
+    flex-shrink: 0;
+  }
+
+  /* Row 2 (bottom): nav links */
+  .left {
+    order: 2;
+    padding: 6px 8px;
+    gap: 0;
+    overflow: visible;
+  }
+
   .logo {
     display: none;
   }
 
-  .nav {
-    padding: 0 8px;
-    height: 48px;
-  }
-
-  .left {
-    gap: 6px;
-  }
-
-  .right {
-    gap: 6px;
+  .links {
+    width: 100%;
+    gap: 4px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
   }
 
   .link {
     font-size: 9px;
-    padding: 4px 8px;
+    padding: 5px 10px;
     letter-spacing: 1px;
   }
 }
