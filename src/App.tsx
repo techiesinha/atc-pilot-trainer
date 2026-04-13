@@ -60,7 +60,7 @@ export default function App() {
 
         <div className={styles.content}>
           <Routes>
-            <Route path="/" element={<SimulatorPage callsign={callsign} userId={user?.id} speak={speak} cancel={cancel} />} />
+            <Route path="/" element={<SimulatorPage user={user} callsign={callsign} userId={user?.id} speak={speak} cancel={cancel} />} />
             <Route path="/metar" element={<MetarPage />} />
             <Route path="/phonetic" element={<PhoneticPage />} />
             <Route path="/progress" element={<ProgressPage />} />

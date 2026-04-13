@@ -215,6 +215,11 @@ export const en = {
 
     errors: {
       generic: 'No weather data available for this station. The station may not report METARs, or the ICAO code may be incorrect. Try a nearby major airport.',
+      unavailableTitle: 'METAR UNAVAILABLE',
+      parseError: 'No weather data available for this station. The station may not report METARs, the ICAO code may be incorrect, or the weather service may be temporarily unavailable. Try a nearby major airport.',
+      notFound: 'Station not found. Verify the ICAO code and try again.',
+      networkError: 'Network error — check your internet connection and try again.',
+      noMetar: 'No METAR available for this station. It may not have an active weather reporting system.',
     },
   },
 

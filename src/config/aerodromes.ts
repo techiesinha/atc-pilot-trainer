@@ -16,21 +16,11 @@ export interface Aerodrome {
 
 /**
  * Shared QNH pool — Indian subcontinent, all seasons.
+ * All values in hPa (whole numbers only — ICAO standard).
+ * Decimals only appear in inHg (USA) — never in hPa.
  *
- * All values are in hPa (whole numbers only).
- * ICAO standard: QNH is always reported as a 4-digit integer in hPa.
- * Decimals do not occur in hPa QNH — they only appear in inHg (USA).
- *
- * Seasonal ranges for India:
- *   Summer  (Mar–Jun): 998 – 1006  low pressure, heat lows over land
- *   Monsoon (Jul–Sep): 998 – 1008  low pressure systems, depressions
- *   Winter  (Oct–Feb): 1010 – 1022 high pressure, clear stable air
- *   Standard ISA:      1013
- *
- * NOTE: Duplicates are intentional.
- * Values like 1013, 1014, 1010 appear multiple times to reflect their
- * higher statistical frequency in real-world METAR observations.
- * A value appearing twice has roughly twice the chance of being picked.
+ * NOTE: Duplicates are intentional. Values like 1013, 1014, 1010 appear
+ * multiple times to reflect their higher real-world statistical frequency.
  */
 export const QNH_POOL: readonly number[] = [
   998, 999, 999, 1000, 1000,
@@ -44,10 +34,6 @@ export const QNH_POOL: readonly number[] = [
   1018, 1019, 1019, 1020, 1021,
 ] as const;
 
-/**
- * Returns a random QNH value from the shared QNH_POOL.
- * Called once per scenario resolution so every session has a different QNH.
- */
 export const pickRandomQnh = (): number => {
   const randomIndex = Math.floor(Math.random() * QNH_POOL.length);
   return QNH_POOL[randomIndex];
@@ -139,17 +125,24 @@ export const AERODROMES: Aerodrome[] = [
     trainingArea: 'Ahmedabad sector',
   },
   {
+    // VADN Dhule — Bombay Flying Club
+    // Operated by senior pilots as AFISO — uncontrolled aerodrome.
+    // Single frequency 123.450 MHz for all communications.
+    // Called "Dhule Tower" despite being uncontrolled — Indian convention.
+    // No VOR, NDB, ILS, approach radar, or ATIS.
+    // North and South sectors only.
     icao: 'VADN',
-    name: 'Dhule Airport',
+    name: 'Dhule (Bombay Flying Club)',
     city: 'Dhule',
     atcName: 'Dhule',
-    groundFreq: '121.900',
-    towerFreq: '118.100',
+    groundFreq: '123.450',
+    towerFreq: '123.450',
     approachFreq: '',
     atisFreq: '',
     emergencyFreq: '121.500',
     runways: ['08', '26'],
-    controlled: true,
+    controlled: false,
+    ctafFreq: '123.450',
     trainingArea: 'Dhule sector',
   },
   {

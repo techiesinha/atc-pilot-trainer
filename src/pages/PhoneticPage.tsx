@@ -1,153 +1,291 @@
 /**
- * © 2025-2026 Abhishek Sinha. All rights reserved.
+ * © 2025 Abhishek Sinha. All rights reserved.
  * ATC Pilot Trainer — For training purposes only.
  * Unauthorised copying or reproduction without prior written permission is prohibited.
  */
-import React, { useState, useCallback, useRef } from 'react';
-import { PHONETIC_ALPHABET, AVIATION_NUMBERS } from '../data/phonetics';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AVIATION_NUMBERS, PHONETIC_ALPHABET } from '../data/phonetics';
+import { t } from '../locales';
 import styles from './PhoneticPage.module.css';
 
-type DrillMode = 'learn' | 'l2p' | 'p2l' | 'numbers';
+// ── Enums ─────────────────────────────────────────────────────────────────────
 
-interface QuizItem { question: string; answer: string; hint: string; }
-
-function buildQuiz(mode: DrillMode): QuizItem[] {
-  if (mode === 'numbers') {
-    return AVIATION_NUMBERS.map((n) => ({ question: n.digit, answer: n.spoken.toLowerCase(), hint: `"${n.digit}" is spoken "${n.spoken}" in aviation to prevent confusion.` }));
-  }
-  const shuffled = [...PHONETIC_ALPHABET].sort(() => Math.random() - 0.5);
-  if (mode === 'l2p') return shuffled.map((p) => ({ question: p.letter, answer: p.phonetic.toLowerCase(), hint: `"${p.letter}" = "${p.phonetic}". Example: "${p.example}"` }));
-  return shuffled.map((p) => ({ question: p.phonetic, answer: p.letter.toLowerCase(), hint: `"${p.phonetic}" = the letter "${p.letter}"` }));
+enum DrillMode {
+  Learn = 'learn',
+  L2P = 'l2p',
+  P2L = 'p2l',
+  Numbers = 'numbers',
 }
 
-export function PhoneticPage() {
-  const [mode, setMode] = useState<DrillMode>('learn');
-  const [items, setItems] = useState<QuizItem[]>([]);
-  const [idx, setIdx] = useState(0);
-  const [input, setInput] = useState('');
-  const [checked, setChecked] = useState<'asking' | 'correct' | 'wrong'>('asking');
-  const [score, setScore] = useState({ correct: 0, total: 0 });
-  const inputRef = useRef<HTMLInputElement>(null);
+enum AnswerState {
+  Asking = 'asking',
+  Correct = 'correct',
+  Wrong = 'wrong',
+}
 
-  const startDrill = useCallback((m: DrillMode) => {
-    if (m === 'learn') { setMode('learn'); return; }
-    setItems(buildQuiz(m)); setIdx(0); setInput(''); setChecked('asking');
-    setScore({ correct: 0, total: 0 }); setMode(m);
-    setTimeout(() => inputRef.current?.focus(), 100);
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const PERCENTAGE_MULTIPLIER = 100;
+const FOCUS_DELAY_START_DRILL_MS = 100;
+const FOCUS_DELAY_NEXT_ITEM_MS = 50;
+const ENTER_KEY = 'Enter';
+const EMPTY_STRING = '';
+const ZERO_SCORE = { correctCount: 0, totalCount: 0 };
+
+interface DrillModeOption {
+  id: DrillMode;
+  label: string;
+}
+
+const DRILL_MODE_OPTIONS: DrillModeOption[] = [
+  { id: DrillMode.Learn, label: t.phonetics.modes.learn },
+  { id: DrillMode.L2P, label: t.phonetics.modes.l2p },
+  { id: DrillMode.P2L, label: t.phonetics.modes.p2l },
+  { id: DrillMode.Numbers, label: t.phonetics.modes.numbers },
+];
+
+const DRILL_QUESTION_LABELS: Record<DrillMode, string> = {
+  [DrillMode.Learn]: EMPTY_STRING,
+  [DrillMode.L2P]: t.phonetics.drill.labelL2p,
+  [DrillMode.P2L]: t.phonetics.drill.labelP2l,
+  [DrillMode.Numbers]: t.phonetics.drill.labelNumbers,
+};
+
+// ── Interfaces ────────────────────────────────────────────────────────────────
+
+interface QuizItem {
+  question: string;
+  answer: string;
+  hint: string;
+}
+
+interface DrillScore {
+  correctCount: number;
+  totalCount: number;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const buildQuizItems = (drillMode: DrillMode): QuizItem[] => {
+  if (drillMode === DrillMode.Numbers) {
+    return AVIATION_NUMBERS.map((numberItem) => {
+      return {
+        question: numberItem.digit,
+        answer: numberItem.spoken.toLowerCase(),
+        hint: `"${numberItem.digit}" is spoken "${numberItem.spoken}" in aviation to prevent confusion.`,
+      };
+    });
+  }
+
+  const shuffledAlphabet = [...PHONETIC_ALPHABET].sort(() => { return Math.random() - 0.5; });
+
+  if (drillMode === DrillMode.L2P) {
+    return shuffledAlphabet.map((phoneticItem) => {
+      return {
+        question: phoneticItem.letter,
+        answer: phoneticItem.phonetic.toLowerCase(),
+        hint: `"${phoneticItem.letter}" = "${phoneticItem.phonetic}". Example: "${phoneticItem.example}"`,
+      };
+    });
+  }
+
+  return shuffledAlphabet.map((phoneticItem) => {
+    return {
+      question: phoneticItem.phonetic,
+      answer: phoneticItem.letter.toLowerCase(),
+      hint: `"${phoneticItem.phonetic}" = the letter "${phoneticItem.letter}"`,
+    };
+  });
+};
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export const PhoneticPage = () => {
+  const [activeDrillMode, setActiveDrillMode] = useState<DrillMode>(DrillMode.Learn);
+  const [quizItems, setQuizItems] = useState<QuizItem[]>([]);
+  const [currentItemIndex, setCurrentItemIndex] = useState(0);
+  const [answerInput, setAnswerInput] = useState(EMPTY_STRING);
+  const [answerState, setAnswerState] = useState<AnswerState>(AnswerState.Asking);
+  const [drillScore, setDrillScore] = useState<DrillScore>(ZERO_SCORE);
+  const answerInputRef = useRef<HTMLInputElement>(null);
+
+  const currentQuizItem = quizItems[currentItemIndex];
+
+  const startDrill = useCallback((drillMode: DrillMode) => {
+    if (drillMode === DrillMode.Learn) {
+      setActiveDrillMode(DrillMode.Learn);
+      return;
+    }
+
+    setQuizItems(buildQuizItems(drillMode));
+    setCurrentItemIndex(0);
+    setAnswerInput(EMPTY_STRING);
+    setAnswerState(AnswerState.Asking);
+    setDrillScore(ZERO_SCORE);
+    setActiveDrillMode(drillMode);
+
+    setTimeout(() => { answerInputRef.current?.focus(); }, FOCUS_DELAY_START_DRILL_MS);
   }, []);
 
-  const current = items[idx];
+  useEffect(() => {
+    if (activeDrillMode !== DrillMode.Learn) {
+      answerInputRef.current?.focus();
+    }
+  }, [activeDrillMode]);
 
-  const check = useCallback(() => {
-    if (!current || checked !== 'asking') return;
-    const ok = input.trim().toLowerCase() === current.answer.toLowerCase();
-    setChecked(ok ? 'correct' : 'wrong');
-    setScore((s) => ({ correct: s.correct + (ok ? 1 : 0), total: s.total + 1 }));
-  }, [current, input, checked]);
+  const checkAnswer = useCallback(() => {
+    if (!currentQuizItem || answerState !== AnswerState.Asking) return;
 
-  const next = useCallback(() => {
-    if (idx + 1 >= items.length) { startDrill(mode); return; }
-    setIdx((i) => i + 1); setInput(''); setChecked('asking');
-    setTimeout(() => inputRef.current?.focus(), 50);
-  }, [idx, items.length, mode, startDrill]);
+    const isCorrect = answerInput.trim().toLowerCase() === currentQuizItem.answer.toLowerCase();
+    setAnswerState(isCorrect ? AnswerState.Correct : AnswerState.Wrong);
+    setDrillScore((previousScore) => {
+      return {
+        correctCount: previousScore.correctCount + (isCorrect ? 1 : 0),
+        totalCount: previousScore.totalCount + 1,
+      };
+    });
+  }, [currentQuizItem, answerInput, answerState]);
 
-  const handleKey = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') { if (checked === 'asking') check(); else next(); }
-  }, [checked, check, next]);
+  const advanceToNext = useCallback(() => {
+    if (currentItemIndex + 1 >= quizItems.length) {
+      startDrill(activeDrillMode);
+      return;
+    }
 
-  const pct = score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
+    setCurrentItemIndex((previousIndex) => { return previousIndex + 1; });
+    setAnswerInput(EMPTY_STRING);
+    setAnswerState(AnswerState.Asking);
+    setTimeout(() => { answerInputRef.current?.focus(); }, FOCUS_DELAY_NEXT_ITEM_MS);
+  }, [currentItemIndex, quizItems.length, activeDrillMode, startDrill]);
+
+  const handleKeyDown = useCallback((keyboardEvent: React.KeyboardEvent) => {
+    if (keyboardEvent.key !== ENTER_KEY) return;
+    if (answerState === AnswerState.Asking) {
+      checkAnswer();
+    } else {
+      advanceToNext();
+    }
+  }, [answerState, checkAnswer, advanceToNext]);
+
+  const accuracyPct = drillScore.totalCount > 0
+    ? Math.round((drillScore.correctCount / drillScore.totalCount) * PERCENTAGE_MULTIPLIER)
+    : 0;
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <div className={styles.title}>PHONETIC ALPHABET</div>
-        <div className={styles.subtitle}>ICAO STANDARD — NATO PHONETIC ALPHABET</div>
+        <div className={styles.title}>{t.phonetics.title}</div>
+        <div className={styles.subtitle}>{t.phonetics.subtitle}</div>
       </div>
 
       <div className={styles.modeRow}>
-        {([
-          { id: 'learn', label: 'Study Table' },
-          { id: 'l2p', label: 'Letter → Phonetic' },
-          { id: 'p2l', label: 'Phonetic → Letter' },
-          { id: 'numbers', label: 'Aviation Numbers' },
-        ] as { id: DrillMode; label: string }[]).map((m) => (
-          <button key={m.id} className={`${styles.modeBtn} ${mode === m.id ? styles.modeActive : ''}`} onClick={() => startDrill(m.id)}>
-            {m.label}
+        {DRILL_MODE_OPTIONS.map((modeOption) => (
+          <button
+            key={modeOption.id}
+            className={`${styles.modeBtn} ${activeDrillMode === modeOption.id ? styles.modeActive : ''}`}
+            onClick={() => { startDrill(modeOption.id); }}
+          >
+            {modeOption.label}
           </button>
         ))}
       </div>
 
-      {mode === 'learn' && (
+      {activeDrillMode === DrillMode.Learn && (
         <div className={styles.tableSection}>
           <div className={styles.alphaGrid}>
-            {PHONETIC_ALPHABET.map((p) => (
-              <div key={p.letter} className={styles.alphaCard}>
-                <div className={styles.alphaLetter}>{p.letter}</div>
-                <div className={styles.alphaPhonetic}>{p.phonetic}</div>
-                <div className={styles.alphaExample}>{p.example}</div>
+            {PHONETIC_ALPHABET.map((phoneticItem) => (
+              <div key={phoneticItem.letter} className={styles.alphaCard}>
+                <div className={styles.alphaLetter}>{phoneticItem.letter}</div>
+                <div className={styles.alphaPhonetic}>{phoneticItem.phonetic}</div>
+                <div className={styles.alphaExample}>{phoneticItem.example}</div>
               </div>
             ))}
           </div>
+
           <div className={styles.numSection}>
-            <div className={styles.numTitle}>AVIATION NUMBERS</div>
+            <div className={styles.numTitle}>{t.phonetics.numbersTitle}</div>
             <div className={styles.numGrid}>
-              {AVIATION_NUMBERS.map((n) => (
-                <div key={n.digit} className={styles.numCard}>
-                  <div className={styles.numDigit}>{n.digit}</div>
-                  <div className={styles.numSpoken}>{n.spoken}</div>
+              {AVIATION_NUMBERS.map((numberItem) => (
+                <div key={numberItem.digit} className={styles.numCard}>
+                  <div className={styles.numDigit}>{numberItem.digit}</div>
+                  <div className={styles.numSpoken}>{numberItem.spoken}</div>
                 </div>
               ))}
             </div>
-            <div className={styles.numNote}>
-              Key differences from everyday English: 3="Tree", 4="Fower", 5="Fife", 8="Ait", 9="Niner". These prevent confusion over noisy radio channels.
-            </div>
+            <div className={styles.numNote}>{t.phonetics.numbersNote}</div>
           </div>
         </div>
       )}
 
-      {mode !== 'learn' && current && (
+      {activeDrillMode !== DrillMode.Learn && currentQuizItem && (
         <div className={styles.drill}>
           <div className={styles.scoreRow}>
-            <span className={styles.pill}>CORRECT <strong>{score.correct}</strong></span>
-            <span className={styles.pill}>TOTAL <strong>{score.total}</strong></span>
-            <span className={styles.pill}>ACCURACY <strong>{pct}%</strong></span>
-            <span className={styles.progress}>{idx + 1} / {items.length}</span>
+            <span className={styles.pill}>
+              {t.phonetics.score.correct} <strong>{drillScore.correctCount}</strong>
+            </span>
+            <span className={styles.pill}>
+              {t.phonetics.score.total} <strong>{drillScore.totalCount}</strong>
+            </span>
+            <span className={styles.pill}>
+              {t.phonetics.score.accuracy} <strong>{accuracyPct}%</strong>
+            </span>
+            <span className={styles.progress}>
+              {currentItemIndex + 1} / {quizItems.length}
+            </span>
           </div>
 
           <div className={styles.questionCard}>
             <div className={styles.qLabel}>
-              {mode === 'l2p' ? 'PHONETIC WORD FOR:' : mode === 'p2l' ? 'LETTER FOR THIS WORD:' : 'AVIATION SPOKEN FORM:'}
+              {DRILL_QUESTION_LABELS[activeDrillMode]}
             </div>
-            <div className={styles.qValue}>{current.question}</div>
+            <div className={styles.qValue}>{currentQuizItem.question}</div>
           </div>
 
-          {checked === 'asking' && (
+          {answerState === AnswerState.Asking && (
             <div className={styles.answerRow}>
-              <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Type your answer..." className={styles.answerInput} autoFocus />
-              <button className={styles.checkBtn} onClick={check}>CHECK</button>
+              <input
+                ref={answerInputRef}
+                value={answerInput}
+                onChange={(inputEvent) => { setAnswerInput(inputEvent.target.value); }}
+                onKeyDown={handleKeyDown}
+                placeholder={t.phonetics.drill.placeholder}
+                className={styles.answerInput}
+                autoFocus
+              />
+              <button className={styles.checkBtn} onClick={checkAnswer}>
+                {t.phonetics.drill.checkBtn}
+              </button>
             </div>
           )}
 
-          {checked === 'correct' && (
+          {answerState === AnswerState.Correct && (
             <div className={styles.resultCorrect}>
               <span className={styles.rIcon}>✓</span>
-              <span>Correct — <strong>{current.answer}</strong></span>
-              <button className={styles.nextBtn} onClick={next}>NEXT →</button>
+              <span>
+                {t.phonetics.drill.correct} — <strong>{currentQuizItem.answer}</strong>
+              </span>
+              <button className={styles.nextBtn} onClick={advanceToNext}>
+                {t.phonetics.drill.nextBtn}
+              </button>
             </div>
           )}
 
-          {checked === 'wrong' && (
+          {answerState === AnswerState.Wrong && (
             <div className={styles.resultWrong}>
               <span className={styles.rIcon}>✗</span>
               <div>
-                <div>Answer: <strong>{current.answer}</strong></div>
-                <div className={styles.hint}>{current.hint}</div>
+                <div>
+                  {t.phonetics.drill.answer} <strong>{currentQuizItem.answer}</strong>
+                </div>
+                <div className={styles.hint}>{currentQuizItem.hint}</div>
               </div>
-              <button className={styles.nextBtn} onClick={next}>NEXT →</button>
+              <button className={styles.nextBtn} onClick={advanceToNext}>
+                {t.phonetics.drill.nextBtn}
+              </button>
             </div>
           )}
         </div>
       )}
     </div>
   );
-}
+};
