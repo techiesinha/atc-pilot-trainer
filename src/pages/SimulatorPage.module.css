@@ -704,3 +704,9 @@
     display: inline;
   }
 }
+
+.listening {
+  color: var(--green-dim);
+  font-style: italic;
+  animation: blink 1s infinite;
+}

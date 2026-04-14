@@ -43,15 +43,21 @@ declare global {
   }
 }
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const RECOGNITION_LANGUAGE = 'en-GB';
 const MAX_ALTERNATIVES = 1;
 const ABORTED_ERROR_CODE = 'aborted';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface UseSpeechRecognitionResult {
   isSupported: boolean;
   start: (onResult: (transcript: string) => void) => void;
   stop: () => void;
 }
+
+// ── Hook ──────────────────────────────────────────────────────────────────────
 
 export const useSpeechRecognition = (): UseSpeechRecognitionResult => {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -70,6 +76,7 @@ export const useSpeechRecognition = (): UseSpeechRecognitionResult => {
     const recognition = new SpeechRecognitionConstructor();
     onResultRef.current = onResult;
     recognitionRef.current = recognition;
+
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = RECOGNITION_LANGUAGE;

@@ -498,12 +498,14 @@ export const SimulatorPage = ({
               <span className={styles.entryText}>{entry.text}</span>
             </div>
           ))}
-          {simulatorState === SimulatorState.Transmitting && liveTranscriptText && (
+          {simulatorState === SimulatorState.Transmitting && (
             <div className={`${styles.entry} ${styles.pilot}`}>
               <span className={styles.src}>{t.simulator.log.labelPilot}</span>
               <span className={styles.entryText}>
-                {liveTranscriptText}
-                <span className={styles.cursor}>▋</span>
+                {liveTranscriptText
+                  ? <>{liveTranscriptText}<span className={styles.cursor}>▋</span></>
+                  : <span className={styles.listening}>listening...</span>
+                }
               </span>
             </div>
           )}
